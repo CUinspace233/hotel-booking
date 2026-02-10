@@ -1,0 +1,23 @@
+import { Router, type IRouter } from 'express';
+import { userController } from '../controllers/userController.js';
+import { authMiddleware } from '../middlewares/auth.js';
+
+const router: IRouter = Router();
+
+/**
+ * 认证相关路由
+ */
+
+// 用户登录 - 无需认证
+router.post('/login', (req, res) => userController.login(req, res));
+
+// 用户注册 - 无需认证
+router.post('/register', (req, res) => userController.register(req, res));
+
+// 获取当前用户信息 - 需要认证
+router.get('/profile', authMiddleware, (req, res) => userController.getProfile(req, res));
+
+// 修改密码 - 需要认证
+router.put('/password', authMiddleware, (req, res) => userController.changePassword(req, res));
+
+export default router;

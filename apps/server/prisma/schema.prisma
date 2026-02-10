@@ -10,4 +10,23 @@ datasource db {
   provider = "sqlite"
 }
 
-// Add your models here
+// 用户角色枚举
+enum UserRole {
+  admin    // 管理员
+  merchant // 商户
+}
+
+// 用户表
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique // 用户名，唯一
+  password  String   // 密码（加密存储）
+  email     String   @unique // 邮箱，唯一
+  phone     String   @unique // 手机号，唯一
+  role      UserRole @default(merchant) // 用户角色，默认商户
+  status    Int      @default(1) // 状态：1-正常，0-禁用
+  createdAt DateTime @default(now()) // 创建时间
+  updatedAt DateTime @updatedAt // 更新时间
+
+  @@map("users") // 表名映射
+}

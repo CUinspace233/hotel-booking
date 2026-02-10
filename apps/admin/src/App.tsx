@@ -1,30 +1,24 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
-import './App.css';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { ConfigProvider } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
+import routes from '@/router';
+
+// 创建路由实例
+const router = createBrowserRouter(routes);
+
+// 自定义主题配置（使用蓝色系，避免蓝紫渐变）
+const themeConfig = {
+  token: {
+    colorPrimary: '#1890ff', // 主色调：蓝色
+    borderRadius: 6
+  }
+};
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>count is {count}</button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
-    </>
+    <ConfigProvider locale={zhCN} theme={themeConfig}>
+      <RouterProvider router={router} />
+    </ConfigProvider>
   );
 }
 
