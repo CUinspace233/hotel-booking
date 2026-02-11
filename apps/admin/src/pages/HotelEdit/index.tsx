@@ -186,9 +186,10 @@ const HotelEdit: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 280,
+      fixed: 'right',
       render: (_, record) => (
-        <Space size="small">
+        <Space size="small" wrap style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Button
             type="link"
             size="small"
@@ -226,12 +227,16 @@ const HotelEdit: React.FC = () => {
           </Button>
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={dataSource}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-        />
+        <div style={{ display: 'flex', flex: 1, overflow: 'auto' }}>
+          <Table
+            columns={columns}
+            dataSource={dataSource}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+            scroll={{ x: 'max-content' }}
+            style={{ flex: 1, minWidth: 0 }}
+          />
+        </div>
       </Card>
 
       {/* 新增/编辑弹窗 */}
