@@ -8,32 +8,100 @@ export interface JwtPayload {
   role: UserRole;
 }
 
+// Token 类型
+export type TokenType = 'access' | 'refresh';
+
+// 双 Token 结果
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+}
+
 // 获取JWT配置
 const getJwtConfig = () => {
   const secret = process.env.JWT_SECRET || 'default-secret-key';
-  const expiresIn = parseInt(process.env.JWT_EXPIRES_IN || '604800', 10); // 默认7天
-  return { secret, expiresIn };
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || 'default-refresh-secret-key';
+  // Access Token 有效期：15 分钟
+  const accessExpiresIn = parseInt(process.env.JWT_ACCESS_EXPIRES_IN || '900', 10);
+  // Refresh Token 有效期：7 天
+  const refreshExpiresIn = parseInt(process.env.JWT_REFRESH_EXPIRES_IN || '604800', 10);
+  return { secret, refreshSecret, accessExpiresIn, refreshExpiresIn };
 };
 
 /**
- * 生成 JWT Token
+ * 生成 Access Token
+ * 有效期较短（15分钟），用于业务请求认证
  */
-export const generateToken = (payload: JwtPayload): string => {
-  const { secret, expiresIn } = getJwtConfig();
-  return jwt.sign(payload, secret, { expiresIn });
+export const generateAccessToken = (payload: JwtPayload): string => {
+  const { secret, accessExpiresIn } = getJwtConfig();
+  return jwt.sign({ ...payload, type: 'access' }, secret, { expiresIn: accessExpiresIn });
 };
 
 /**
- * 验证 JWT Token
+ * 生成 Refresh Token
+ * 有效期较长（7天），用于刷新 Access Token
  */
-export const verifyToken = (token: string): JwtPayload | null => {
+export const generateRefreshToken = (payload: JwtPayload): string => {
+  const { refreshSecret, refreshExpiresIn } = getJwtConfig();
+  return jwt.sign({ ...payload, type: 'refresh' }, refreshSecret, { expiresIn: refreshExpiresIn });
+};
+
+/**
+ * 生成双 Token
+ */
+export const generateTokenPair = (payload: JwtPayload): TokenPair => {
+  return {
+    accessToken: generateAccessToken(payload),
+    refreshToken: generateRefreshToken(payload)
+  };
+};
+
+/**
+ * 验证 Access Token
+ */
+export const verifyAccessToken = (token: string): JwtPayload | null => {
   try {
     const { secret } = getJwtConfig();
-    const decoded = jwt.verify(token, secret) as JwtPayload;
+    const decoded = jwt.verify(token, secret) as JwtPayload & { type: string };
+    if (decoded.type !== 'access') {
+      return null;
+    }
     return decoded;
   } catch {
     return null;
   }
+};
+
+/**
+ * 验证 Refresh Token
+ */
+export const verifyRefreshToken = (token: string): JwtPayload | null => {
+  try {
+    const { refreshSecret } = getJwtConfig();
+    const decoded = jwt.verify(token, refreshSecret) as JwtPayload & { type: string };
+    if (decoded.type !== 'refresh') {
+      return null;
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * 生成 JWT Token（兼容旧接口）
+ * @deprecated 使用 generateTokenPair 替代
+ */
+export const generateToken = (payload: JwtPayload): string => {
+  return generateAccessToken(payload);
+};
+
+/**
+ * 验证 JWT Token（兼容旧接口）
+ * @deprecated 使用 verifyAccessToken 替代
+ */
+export const verifyToken = (token: string): JwtPayload | null => {
+  return verifyAccessToken(token);
 };
 
 /**

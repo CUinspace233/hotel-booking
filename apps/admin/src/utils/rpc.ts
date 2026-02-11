@@ -56,6 +56,7 @@ class Rpc {
     this.instance = axios.create({
       baseURL: this.baseURL,
       timeout: 15000, // 15秒超时
+      withCredentials: true, // 允许携带 Cookie（用于认证）
       headers: {
         'Content-Type': 'application/json'
       }

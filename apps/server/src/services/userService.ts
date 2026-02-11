@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import type { User } from '.prisma/client';
 import { userRepository, CreateUserParams, UserRole } from '../repositories/userRepository';
-import { generateToken, JwtPayload } from '../utils/jwt';
+import { generateTokenPair, JwtPayload, TokenPair } from '../utils/jwt';
 
 // 登录参数
 export interface LoginParams {
@@ -19,9 +19,10 @@ export interface RegisterParams {
   role?: UserRole;
 }
 
-// 登录返回结果
+// 登录返回结果（双 Token）
 export interface LoginResult {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
   user: Omit<User, 'password'>;
 }
 
@@ -43,6 +44,7 @@ export class ServiceError extends Error {
 class UserService {
   /**
    * 用户登录
+   * 返回双 Token（Access Token + Refresh Token）
    */
   async login(params: LoginParams): Promise<LoginResult> {
     const { username, password, role } = params;
@@ -69,18 +71,19 @@ class UserService {
       throw new ServiceError('该账号已被禁用');
     }
 
-    // 生成 Token
+    // 生成双 Token
     const payload: JwtPayload = {
       userId: user.id,
       username: user.username,
       role: user.role
     };
-    const token = generateToken(payload);
+    const tokenPair: TokenPair = generateTokenPair(payload);
 
     // 返回结果（排除密码）
     const { password: _, ...userWithoutPassword } = user;
     return {
-      token,
+      accessToken: tokenPair.accessToken,
+      refreshToken: tokenPair.refreshToken,
       user: userWithoutPassword
     };
   }

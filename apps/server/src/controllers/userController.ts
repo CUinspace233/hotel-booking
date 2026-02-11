@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { userService, ServiceError, LoginParams, RegisterParams } from '../services/userService';
 import { ResponseUtil } from '../utils/response';
+import { setTokenCookies, clearTokenCookies, AuthenticatedRequest } from '../middlewares/auth';
 
 /**
  * 用户控制器（Controller）
@@ -10,6 +11,7 @@ class UserController {
   /**
    * 用户登录
    * POST /api/auth/login
+   * 登录成功后，将加密的双 Token 设置到 HttpOnly Cookie
    */
   async login(req: Request, res: Response): Promise<Response> {
     try {
@@ -27,13 +29,33 @@ class UserController {
       const params: LoginParams = { username, password, role };
       const result = await userService.login(params);
 
-      return ResponseUtil.success(res, result, '登录成功');
+      // 设置加密后的 Token 到 Cookie
+      setTokenCookies(res, result.accessToken, result.refreshToken);
+
+      // 返回用户信息（不返回 Token，Token 通过 Cookie 传递）
+      return ResponseUtil.success(res, { user: result.user }, '登录成功');
     } catch (error) {
       if (error instanceof ServiceError) {
         return ResponseUtil.error(res, error.message, error.code);
       }
       console.error('Login error:', error);
       return ResponseUtil.serverError(res, '登录失败，请稍后重试');
+    }
+  }
+
+  /**
+   * 用户登出
+   * POST /api/auth/logout
+   * 清除 Cookie 中的 Token
+   */
+  async logout(req: Request, res: Response): Promise<Response> {
+    try {
+      // 清除 Cookie
+      clearTokenCookies(res);
+      return ResponseUtil.success(res, null, '登出成功');
+    } catch (error) {
+      console.error('Logout error:', error);
+      return ResponseUtil.serverError(res, '登出失败，请稍后重试');
     }
   }
 
@@ -97,7 +119,7 @@ class UserController {
   async getProfile(req: Request, res: Response): Promise<Response> {
     try {
       // 从中间件注入的用户信息中获取 userId
-      const userId = (req as Request & { userId: number }).userId;
+      const userId = (req as AuthenticatedRequest).userId;
 
       const user = await userService.getUserById(userId);
       if (!user) {
@@ -117,7 +139,7 @@ class UserController {
    */
   async changePassword(req: Request, res: Response): Promise<Response> {
     try {
-      const userId = (req as Request & { userId: number }).userId;
+      const userId = (req as AuthenticatedRequest).userId;
       const { oldPassword, newPassword } = req.body;
 
       // 参数校验
@@ -131,7 +153,10 @@ class UserController {
 
       await userService.changePassword(userId, oldPassword, newPassword);
 
-      return ResponseUtil.success(res, null, '密码修改成功');
+      // 修改密码成功后，清除 Cookie，要求重新登录
+      clearTokenCookies(res);
+
+      return ResponseUtil.success(res, null, '密码修改成功，请重新登录');
     } catch (error) {
       if (error instanceof ServiceError) {
         return ResponseUtil.error(res, error.message, error.code);

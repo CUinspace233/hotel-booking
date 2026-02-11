@@ -1,5 +1,6 @@
 import express, { Request, Response, Express } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import routes from './routes/index';
 
@@ -15,11 +16,14 @@ const PORT = process.env.PORT || 3003;
 app.use(
   cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'], // 允许的前端地址
-    credentials: true, // 允许携带凭证
+    credentials: true, // 允许携带凭证（Cookie）
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
+
+// Cookie 解析中间件
+app.use(cookieParser());
 
 // JSON 解析
 app.use(express.json());
@@ -58,6 +62,7 @@ app.listen(PORT, () => {
   console.log('========================================');
   console.log('可用接口:');
   console.log('  POST /api/auth/login    - 用户登录');
+  console.log('  POST /api/auth/logout   - 用户登出');
   console.log('  POST /api/auth/register - 用户注册');
   console.log('  GET  /api/auth/profile  - 获取用户信息');
   console.log('  PUT  /api/auth/password - 修改密码');

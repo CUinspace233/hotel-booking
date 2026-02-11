@@ -11,6 +11,9 @@ const router: IRouter = Router();
 // 用户登录 - 无需认证
 router.post('/login', (req, res) => userController.login(req, res));
 
+// 用户登出 - 无需认证（清除 Cookie）
+router.post('/logout', (req, res) => userController.logout(req, res));
+
 // 用户注册 - 无需认证
 router.post('/register', (req, res) => userController.register(req, res));
 
