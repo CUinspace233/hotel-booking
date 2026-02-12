@@ -12,3 +12,18 @@ export {
   type UserProfile,
   type ChangePasswordParams
 } from './auth';
+
+// 酒店相关 API
+export {
+  hotelApi,
+  type HotelType,
+  type HotelStatus,
+  type HotelProject,
+  type HotelDetail,
+  type PaginationInfo,
+  type PaginatedResponse,
+  type CreateHotelProjectParams,
+  type UpdateHotelProjectParams,
+  type HotelProjectListParams,
+  type UpdateStatusParams
+} from './hotel';

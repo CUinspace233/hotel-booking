@@ -1,29 +1,25 @@
-// Prisma 客户端导入 - Prisma 7.x 在 Monorepo 下需要直接导入生成的客户端
-import { PrismaClient } from '.prisma/client/index';
+// Prisma 7.x 需要使用 Driver Adapter 模式
+// 参考: https://www.prisma.io/docs/orm/prisma-client/databases/sqlite
+import { PrismaClient } from '.prisma/client';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-// 获取当前目录
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 创建适配器 - Prisma 7.x 的 PrismaLibSql 接收配置对象
-// 数据库文件在 apps/server/dev.db（根目录）
-const adapter = new PrismaLibSql({
-  url: `file:${path.resolve(__dirname, '../../dev.db')}`
-});
-
-// 声明全局变量，避免开发环境热重载时创建多个实例
+// 声明全局变量类型
 declare global {
   // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
 }
 
-// 创建 Prisma 客户端单例 - Prisma 7.x 需要传入 adapter
-export const prisma = globalThis.prisma ?? new PrismaClient({ adapter });
+// Prisma 7.x 使用新的 AdapterFactory 模式
+// PrismaLibSql 需要传入配置对象，会自动创建 libsql 客户端
+const adapter = new PrismaLibSql({
+  url: `file:${path.join(process.cwd(), 'dev.db')}`
+});
 
-// 开发环境下保存到全局变量
+// 创建 Prisma 客户端单例
+// 在开发环境中使用全局变量，避免热重载时创建多个实例
+const prisma = globalThis.prisma || new PrismaClient({ adapter });
+
 if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma;
 }

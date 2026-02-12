@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -14,7 +14,8 @@ import {
   Tag,
   Row,
   Col,
-  Typography
+  Typography,
+  Spin
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -22,70 +23,24 @@ import {
   EditOutlined,
   DeleteOutlined,
   HomeOutlined,
-  EyeOutlined
+  EyeOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
+
+import { hotelApi, type HotelProject, type HotelStatus, type HotelType } from '@/api';
+import { RpcError } from '@/utils/rpc';
 
 const { Text } = Typography;
 
-// 酒店类型枚举
-type HotelType = 'business' | 'resort' | 'boutique' | 'budget' | 'apartment';
-
-// 酒店状态枚举
-type HotelStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'offline';
-
-// 酒店基础数据类型
-interface HotelBaseData {
-  hotelId: string; // 唯一酒店ID
-  name: string; // 酒店名称
-  creator: string; // 创建人
-  hotelType: HotelType; // 酒店类型
-  status: HotelStatus; // 状态
-  createTime: string; // 创建日期
-}
-
-// 模拟数据
-const mockData: HotelBaseData[] = [
-  {
-    hotelId: 'HTL20240115001',
-    name: '北京朝阳商务酒店',
-    creator: '张三',
-    hotelType: 'business',
-    status: 'draft',
-    createTime: '2024-01-15'
-  },
-  {
-    hotelId: 'HTL20240116002',
-    name: '三亚海棠湾度假酒店',
-    creator: '李四',
-    hotelType: 'resort',
-    status: 'pending',
-    createTime: '2024-01-16'
-  },
-  {
-    hotelId: 'HTL20240117003',
-    name: '上海外滩精品酒店',
-    creator: '王五',
-    hotelType: 'boutique',
-    status: 'approved',
-    createTime: '2024-01-17'
-  },
-  {
-    hotelId: 'HTL20240118004',
-    name: '杭州西湖经济酒店',
-    creator: '赵六',
-    hotelType: 'budget',
-    status: 'rejected',
-    createTime: '2024-01-18'
-  }
-];
-
 // 酒店类型映射
-const hotelTypeMap: Record<HotelType, string> = {
+const hotelTypeMap: Record<string, string> = {
   business: '商务酒店',
   resort: '度假酒店',
   boutique: '精品酒店',
   budget: '经济酒店',
-  apartment: '公寓式酒店'
+  apartment: '公寓式酒店',
+  standard: '标准酒店',
+  hostel: '青年旅舍'
 };
 
 // 状态标签映射
@@ -97,81 +52,41 @@ const statusMap: Record<HotelStatus, { color: string; text: string }> = {
   offline: { color: 'warning', text: '已下线' }
 };
 
-// 生成唯一酒店ID
-const generateHotelId = (): string => {
-  const date = new Date();
-  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-  const random = Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, '0');
-  return `HTL${dateStr}${random}`;
-};
-
 const HotelEdit: React.FC = () => {
   const navigate = useNavigate();
-  const [dataSource, setDataSource] = useState<HotelBaseData[]>(mockData);
+  const [dataSource, setDataSource] = useState<HotelProject[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
   const [form] = Form.useForm();
 
-  // 打开新建弹窗
-  const handleAdd = () => {
-    form.resetFields();
-    setModalVisible(true);
-  };
-
-  // 跳转到详情编辑页面
-  const handleEditDetail = (record: HotelBaseData) => {
-    // 跳转到详情页面，传递hotelId作为参数
-    navigate(`/hotel-detail/${record.hotelId}`);
-  };
-
-  // 查看详情
-  const handleViewDetail = (record: HotelBaseData) => {
-    navigate(`/hotel-detail/${record.hotelId}?mode=view`);
-  };
-
-  // 删除酒店
-  const handleDelete = (hotelId: string) => {
-    setDataSource(dataSource.filter((item) => item.hotelId !== hotelId));
-    message.success('删除成功');
-  };
-
-  // 提交审核
-  const handleSubmitReview = (record: HotelBaseData) => {
-    setDataSource(
-      dataSource.map((item) =>
-        item.hotelId === record.hotelId ? { ...item, status: 'pending' as const } : item
-      )
-    );
-    message.success('已提交审核');
-  };
-
-  // 保存新建酒店基础信息
-  const handleSave = async () => {
+  // 格式化日期显示
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return '-';
     try {
-      const values = await form.validateFields();
-      const newHotel: HotelBaseData = {
-        ...values,
-        hotelId: generateHotelId(),
-        creator: '当前用户', // 实际应从登录状态获取
-        status: 'draft',
-        createTime: new Date().toISOString().split('T')[0]
-      };
-      setDataSource([...dataSource, newHotel]);
-      message.success('酒店创建成功，请点击编辑完善详细信息');
-      setModalVisible(false);
+      const date = new Date(dateString);
+      return date.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
     } catch {
-      message.error('请检查表单信息');
+      return '-';
     }
   };
 
   // 表格列定义
-  const columns: ColumnsType<HotelBaseData> = [
+  const columns: ColumnsType<HotelProject> = [
     {
       title: '酒店ID',
       dataIndex: 'hotelId',
       key: 'hotelId',
-      width: 160,
+      width: 200,
       render: (hotelId: string) => (
         <Text copyable={{ text: hotelId }} style={{ fontFamily: 'monospace' }}>
           {hotelId}
@@ -182,44 +97,46 @@ const HotelEdit: React.FC = () => {
       title: '酒店名称',
       dataIndex: 'name',
       key: 'name',
-      width: 200,
-      ellipsis: true
+      ellipsis: true,
+      render: (name: string | null) => name || '-'
     },
     {
       title: '创建人',
       dataIndex: 'creator',
       key: 'creator',
-      width: 100
+      ellipsis: true
     },
     {
       title: '酒店类型',
       dataIndex: 'hotelType',
       key: 'hotelType',
-      width: 120,
-      render: (type: HotelType) => hotelTypeMap[type] || type
+      ellipsis: true,
+      render: (type: string | null) => (type ? hotelTypeMap[type] || type : '-')
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      width: 100,
-      render: (status: HotelStatus) => (
-        <Tag color={statusMap[status].color}>{statusMap[status].text}</Tag>
-      )
+      ellipsis: true,
+      render: (status: HotelStatus) => {
+        const statusInfo = statusMap[status] || { color: 'default', text: status };
+        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+      }
     },
     {
       title: '创建日期',
-      dataIndex: 'createTime',
-      key: 'createTime',
-      width: 120
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      ellipsis: true,
+      render: (date: string) => formatDate(date)
     },
     {
       title: '操作',
       key: 'action',
-      width: 280,
-      fixed: 'right',
+      width: 320,
+      fixed: 'right' as const,
       render: (_, record) => (
-        <Space size="small" wrap style={{ display: 'flex', flexWrap: 'wrap' }}>
+        <Space size="small" style={{ whiteSpace: 'nowrap' }}>
           <Button
             type="link"
             size="small"
@@ -253,37 +170,169 @@ const HotelEdit: React.FC = () => {
     }
   ];
 
+  // 获取酒店列表
+  const fetchHotelList = useCallback(async (page = 1, pageSize = 10) => {
+    setTableLoading(true);
+    try {
+      const result = await hotelApi.getList({ page, pageSize });
+      setDataSource(result.list);
+      setPagination({
+        current: result.pagination.page,
+        pageSize: result.pagination.pageSize,
+        total: result.pagination.total
+      });
+    } catch (error) {
+      console.error('获取酒店列表失败:', error);
+      if (error instanceof RpcError) {
+        message.error(error.message || '获取酒店列表失败');
+      } else {
+        message.error('获取酒店列表失败，请检查网络连接');
+      }
+    } finally {
+      setTableLoading(false);
+    }
+  }, []);
+
+  // 初始化加载数据
+  useEffect(() => {
+    fetchHotelList();
+  }, [fetchHotelList]);
+
+  // 处理分页变化
+  const handleTableChange = (paginationConfig: { current?: number; pageSize?: number }) => {
+    fetchHotelList(paginationConfig.current || 1, paginationConfig.pageSize || 10);
+  };
+
+  // 刷新列表
+  const handleRefresh = () => {
+    fetchHotelList(pagination.current, pagination.pageSize);
+  };
+
+  // 打开新建弹窗
+  const handleAdd = () => {
+    form.resetFields();
+    setModalVisible(true);
+  };
+
+  // 跳转到详情编辑页面
+  const handleEditDetail = (record: HotelProject) => {
+    navigate(`/hotel-detail/${record.hotelId}`);
+  };
+
+  // 查看详情
+  const handleViewDetail = (record: HotelProject) => {
+    navigate(`/hotel-detail/${record.hotelId}?mode=view`);
+  };
+
+  // 删除酒店
+  const handleDelete = async (hotelId: string) => {
+    try {
+      await hotelApi.delete(hotelId);
+      message.success('删除成功');
+      // 刷新列表
+      fetchHotelList(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('删除酒店失败:', error);
+      if (error instanceof RpcError) {
+        message.error(error.message || '删除失败');
+      } else {
+        message.error('删除失败，请稍后重试');
+      }
+    }
+  };
+
+  // 提交审核
+  const handleSubmitReview = async (record: HotelProject) => {
+    try {
+      await hotelApi.submitReview(record.hotelId);
+      message.success('已提交审核');
+      // 刷新列表
+      fetchHotelList(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('提交审核失败:', error);
+      if (error instanceof RpcError) {
+        message.error(error.message || '提交审核失败');
+      } else {
+        message.error('提交审核失败，请稍后重试');
+      }
+    }
+  };
+
+  // 保存新建酒店基础信息
+  const handleSave = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+
+      await hotelApi.create({
+        name: values.name,
+        hotelType: values.hotelType as HotelType
+      });
+
+      message.success('酒店创建成功，请点击编辑完善详细信息');
+      setModalVisible(false);
+      // 刷新列表，跳到第一页查看新创建的记录
+      fetchHotelList(1, pagination.pageSize);
+    } catch (error) {
+      console.error('创建酒店失败:', error);
+      if (error instanceof RpcError) {
+        message.error(error.message || '创建失败');
+      } else if (error && typeof error === 'object' && 'errorFields' in error) {
+        // 表单验证错误
+        message.error('请检查表单信息');
+      } else {
+        message.error('创建失败，请稍后重试');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div>
-      <h2 style={{ marginBottom: 24 }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <h2 style={{ marginBottom: 24, flexShrink: 0 }}>
         <HomeOutlined style={{ marginRight: 8 }} />
         酒店信息管理
       </h2>
 
-      <Card>
-        <div style={{ marginBottom: 16 }}>
+      <Card style={{ width: '100%' }}>
+        <div
+          style={{
+            marginBottom: 16,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
           <Space>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               新建酒店
             </Button>
+            <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={tableLoading}>
+              刷新
+            </Button>
           </Space>
+          <Text type="secondary">共 {pagination.total} 条记录</Text>
         </div>
 
-        <div style={{ display: 'flex', flex: 1, overflow: 'auto' }}>
+        <Spin spinning={tableLoading}>
           <Table
             columns={columns}
             dataSource={dataSource}
             rowKey="hotelId"
             pagination={{
-              pageSize: 10,
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
               showSizeChanger: true,
               showQuickJumper: true,
               showTotal: (total) => `共 ${total} 条记录`
             }}
+            onChange={handleTableChange}
             scroll={{ x: 'max-content' }}
-            style={{ flex: 1, minWidth: 0 }}
+            style={{ width: '100%' }}
           />
-        </div>
+        </Spin>
       </Card>
 
       {/* 新建酒店弹窗 - 只填写基础信息 */}
@@ -295,6 +344,8 @@ const HotelEdit: React.FC = () => {
         width={500}
         okText="创建"
         cancelText="取消"
+        confirmLoading={loading}
+        okButtonProps={{ disabled: loading }}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
