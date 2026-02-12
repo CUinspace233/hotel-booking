@@ -269,3 +269,106 @@ export const rpc = new Rpc();
 
 // 默认导出
 export default rpc;
+
+/**
+ * 简化的 API 调用接口
+ * 支持类似 api.get('/url', params, config) 的调用方式
+ *
+ * 使用示例：
+ * 1. 简单GET请求：const resp = await api.get('/marketing/getAddress', {}, { timeout: 60000 });
+ * 2. 带参数的GET请求：const res = await api.get('/coupon/cancel', { params: { id: 1, name: 'test' } });
+ * 3. POST请求：const data = await api.post('/user/create', { name: 'test' });
+ */
+export const api = {
+  /**
+   * GET 请求
+   * @param url 请求地址
+   * @param params 查询参数（可直接传对象，也可包装在 { params: {} } 中）
+   * @param config 额外配置（如 timeout）
+   */
+  get: async <T = unknown>(
+    url: string,
+    params?: Record<string, unknown> | { params?: Record<string, unknown> },
+    config?: RequestConfig
+  ): Promise<T> => {
+    // 兼容两种传参方式
+    let queryParams: Record<string, unknown> | undefined = undefined;
+    let finalConfig: RequestConfig | undefined = config;
+
+    if (params && typeof params === 'object' && 'params' in params) {
+      // 方式2：{ params: { ... } } 形式
+      const paramsObj = params as { params?: Record<string, unknown>; [key: string]: unknown };
+      queryParams = paramsObj.params;
+      // 合并其他配置项（排除params）
+      const { params: _, ...restParams } = paramsObj;
+      finalConfig = { ...restParams, ...config } as RequestConfig;
+    } else if (params) {
+      // 方式1：直接传递参数对象
+      queryParams = params as Record<string, unknown>;
+    }
+
+    return rpc.get<T>(url, queryParams, finalConfig);
+  },
+
+  /**
+   * POST 请求
+   * @param url 请求地址
+   * @param data 请求体数据
+   * @param config 额外配置（如 timeout）
+   */
+  post: async <T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<T> => {
+    return rpc.post<T>(url, data, config);
+  },
+
+  /**
+   * PUT 请求
+   * @param url 请求地址
+   * @param data 请求体数据
+   * @param config 额外配置（如 timeout）
+   */
+  put: async <T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<T> => {
+    return rpc.put<T>(url, data, config);
+  },
+
+  /**
+   * DELETE 请求
+   * @param url 请求地址
+   * @param params 查询参数
+   * @param config 额外配置（如 timeout）
+   */
+  delete: async <T = unknown>(
+    url: string,
+    params?: Record<string, unknown>,
+    config?: RequestConfig
+  ): Promise<T> => {
+    return rpc.delete<T>(url, params, config);
+  },
+
+  /**
+   * PATCH 请求
+   * @param url 请求地址
+   * @param data 请求体数据
+   * @param config 额外配置（如 timeout）
+   */
+  patch: async <T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<T> => {
+    return rpc.patch<T>(url, data, config);
+  },
+
+  /**
+   * 文件上传
+   * @param url 请求地址
+   * @param file 文件对象
+   * @param fieldName 文件字段名，默认 'file'
+   * @param extraData 额外数据
+   * @param config 额外配置
+   */
+  upload: async <T = unknown>(
+    url: string,
+    file: File,
+    fieldName: string = 'file',
+    extraData?: Record<string, unknown>,
+    config?: RequestConfig
+  ): Promise<T> => {
+    return rpc.upload<T>(url, file, fieldName, extraData, config);
+  }
+};

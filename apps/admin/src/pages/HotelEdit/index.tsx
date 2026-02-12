@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   Table,
@@ -7,128 +8,157 @@ import {
   Modal,
   Form,
   Input,
-  InputNumber,
   Select,
-  Upload,
   message,
   Popconfirm,
   Tag,
   Row,
-  Col
+  Col,
+  Typography
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  UploadOutlined,
-  HomeOutlined
+  HomeOutlined,
+  EyeOutlined
 } from '@ant-design/icons';
 
-// 酒店数据类型
-interface HotelData {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  star: number;
-  roomCount: number;
-  description: string;
-  status: 'draft' | 'pending' | 'published' | 'offline';
-  createTime: string;
+const { Text } = Typography;
+
+// 酒店类型枚举
+type HotelType = 'business' | 'resort' | 'boutique' | 'budget' | 'apartment';
+
+// 酒店状态枚举
+type HotelStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'offline';
+
+// 酒店基础数据类型
+interface HotelBaseData {
+  hotelId: string; // 唯一酒店ID
+  name: string; // 酒店名称
+  creator: string; // 创建人
+  hotelType: HotelType; // 酒店类型
+  status: HotelStatus; // 状态
+  createTime: string; // 创建日期
 }
 
 // 模拟数据
-const mockData: HotelData[] = [
+const mockData: HotelBaseData[] = [
   {
-    id: '1',
-    name: '示例酒店A',
-    address: '北京市朝阳区xxx路xxx号',
-    phone: '010-12345678',
-    star: 5,
-    roomCount: 200,
-    description: '五星级豪华酒店',
+    hotelId: 'HTL20240115001',
+    name: '北京朝阳商务酒店',
+    creator: '张三',
+    hotelType: 'business',
     status: 'draft',
     createTime: '2024-01-15'
   },
   {
-    id: '2',
-    name: '示例酒店B',
-    address: '上海市浦东新区xxx路xxx号',
-    phone: '021-87654321',
-    star: 4,
-    roomCount: 150,
-    description: '商务精选酒店',
+    hotelId: 'HTL20240116002',
+    name: '三亚海棠湾度假酒店',
+    creator: '李四',
+    hotelType: 'resort',
     status: 'pending',
     createTime: '2024-01-16'
+  },
+  {
+    hotelId: 'HTL20240117003',
+    name: '上海外滩精品酒店',
+    creator: '王五',
+    hotelType: 'boutique',
+    status: 'approved',
+    createTime: '2024-01-17'
+  },
+  {
+    hotelId: 'HTL20240118004',
+    name: '杭州西湖经济酒店',
+    creator: '赵六',
+    hotelType: 'budget',
+    status: 'rejected',
+    createTime: '2024-01-18'
   }
 ];
 
+// 酒店类型映射
+const hotelTypeMap: Record<HotelType, string> = {
+  business: '商务酒店',
+  resort: '度假酒店',
+  boutique: '精品酒店',
+  budget: '经济酒店',
+  apartment: '公寓式酒店'
+};
+
 // 状态标签映射
-const statusMap = {
+const statusMap: Record<HotelStatus, { color: string; text: string }> = {
   draft: { color: 'default', text: '草稿' },
-  pending: { color: 'processing', text: '待审核' },
-  published: { color: 'success', text: '已发布' },
-  offline: { color: 'error', text: '已下线' }
+  pending: { color: 'processing', text: '提审中' },
+  approved: { color: 'success', text: '审核通过' },
+  rejected: { color: 'error', text: '审核驳回' },
+  offline: { color: 'warning', text: '已下线' }
+};
+
+// 生成唯一酒店ID
+const generateHotelId = (): string => {
+  const date = new Date();
+  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+  const random = Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, '0');
+  return `HTL${dateStr}${random}`;
 };
 
 const HotelEdit: React.FC = () => {
-  const [dataSource, setDataSource] = useState<HotelData[]>(mockData);
+  const navigate = useNavigate();
+  const [dataSource, setDataSource] = useState<HotelBaseData[]>(mockData);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingHotel, setEditingHotel] = useState<HotelData | null>(null);
   const [form] = Form.useForm();
 
-  // 打开新增弹窗
+  // 打开新建弹窗
   const handleAdd = () => {
-    setEditingHotel(null);
     form.resetFields();
     setModalVisible(true);
   };
 
-  // 打开编辑弹窗
-  const handleEdit = (record: HotelData) => {
-    setEditingHotel(record);
-    form.setFieldsValue(record);
-    setModalVisible(true);
+  // 跳转到详情编辑页面
+  const handleEditDetail = (record: HotelBaseData) => {
+    // 跳转到详情页面，传递hotelId作为参数
+    navigate(`/hotel-detail/${record.hotelId}`);
+  };
+
+  // 查看详情
+  const handleViewDetail = (record: HotelBaseData) => {
+    navigate(`/hotel-detail/${record.hotelId}?mode=view`);
   };
 
   // 删除酒店
-  const handleDelete = (id: string) => {
-    setDataSource(dataSource.filter((item) => item.id !== id));
+  const handleDelete = (hotelId: string) => {
+    setDataSource(dataSource.filter((item) => item.hotelId !== hotelId));
     message.success('删除成功');
   };
 
   // 提交审核
-  const handleSubmitReview = (record: HotelData) => {
+  const handleSubmitReview = (record: HotelBaseData) => {
     setDataSource(
       dataSource.map((item) =>
-        item.id === record.id ? { ...item, status: 'pending' as const } : item
+        item.hotelId === record.hotelId ? { ...item, status: 'pending' as const } : item
       )
     );
     message.success('已提交审核');
   };
 
-  // 保存酒店信息
+  // 保存新建酒店基础信息
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      if (editingHotel) {
-        // 编辑
-        setDataSource(
-          dataSource.map((item) => (item.id === editingHotel.id ? { ...item, ...values } : item))
-        );
-        message.success('修改成功');
-      } else {
-        // 新增
-        const newHotel: HotelData = {
-          ...values,
-          id: Date.now().toString(),
-          status: 'draft',
-          createTime: new Date().toISOString().split('T')[0]
-        };
-        setDataSource([...dataSource, newHotel]);
-        message.success('添加成功');
-      }
+      const newHotel: HotelBaseData = {
+        ...values,
+        hotelId: generateHotelId(),
+        creator: '当前用户', // 实际应从登录状态获取
+        status: 'draft',
+        createTime: new Date().toISOString().split('T')[0]
+      };
+      setDataSource([...dataSource, newHotel]);
+      message.success('酒店创建成功，请点击编辑完善详细信息');
       setModalVisible(false);
     } catch {
       message.error('请检查表单信息');
@@ -136,49 +166,49 @@ const HotelEdit: React.FC = () => {
   };
 
   // 表格列定义
-  const columns: ColumnsType<HotelData> = [
+  const columns: ColumnsType<HotelBaseData> = [
+    {
+      title: '酒店ID',
+      dataIndex: 'hotelId',
+      key: 'hotelId',
+      width: 160,
+      render: (hotelId: string) => (
+        <Text copyable={{ text: hotelId }} style={{ fontFamily: 'monospace' }}>
+          {hotelId}
+        </Text>
+      )
+    },
     {
       title: '酒店名称',
       dataIndex: 'name',
       key: 'name',
-      width: 180
-    },
-    {
-      title: '地址',
-      dataIndex: 'address',
-      key: 'address',
+      width: 200,
       ellipsis: true
     },
     {
-      title: '联系电话',
-      dataIndex: 'phone',
-      key: 'phone',
-      width: 140
-    },
-    {
-      title: '星级',
-      dataIndex: 'star',
-      key: 'star',
-      width: 100,
-      render: (star: number) => `${star}星`
-    },
-    {
-      title: '房间数',
-      dataIndex: 'roomCount',
-      key: 'roomCount',
+      title: '创建人',
+      dataIndex: 'creator',
+      key: 'creator',
       width: 100
+    },
+    {
+      title: '酒店类型',
+      dataIndex: 'hotelType',
+      key: 'hotelType',
+      width: 120,
+      render: (type: HotelType) => hotelTypeMap[type] || type
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: keyof typeof statusMap) => (
+      render: (status: HotelStatus) => (
         <Tag color={statusMap[status].color}>{statusMap[status].text}</Tag>
       )
     },
     {
-      title: '创建时间',
+      title: '创建日期',
       dataIndex: 'createTime',
       key: 'createTime',
       width: 120
@@ -193,8 +223,16 @@ const HotelEdit: React.FC = () => {
           <Button
             type="link"
             size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleViewDetail(record)}
+          >
+            查看
+          </Button>
+          <Button
+            type="link"
+            size="small"
             icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
+            onClick={() => handleEditDetail(record)}
           >
             编辑
           </Button>
@@ -203,11 +241,13 @@ const HotelEdit: React.FC = () => {
               提交审核
             </Button>
           )}
-          <Popconfirm title="确定要删除此酒店吗？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
+          {(record.status === 'draft' || record.status === 'rejected') && (
+            <Popconfirm title="确定要删除此酒店吗？" onConfirm={() => handleDelete(record.hotelId)}>
+              <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+                删除
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       )
     }
@@ -222,103 +262,70 @@ const HotelEdit: React.FC = () => {
 
       <Card>
         <div style={{ marginBottom: 16 }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            录入酒店
-          </Button>
+          <Space>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              新建酒店
+            </Button>
+          </Space>
         </div>
 
         <div style={{ display: 'flex', flex: 1, overflow: 'auto' }}>
           <Table
             columns={columns}
             dataSource={dataSource}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
+            rowKey="hotelId"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条记录`
+            }}
             scroll={{ x: 'max-content' }}
             style={{ flex: 1, minWidth: 0 }}
           />
         </div>
       </Card>
 
-      {/* 新增/编辑弹窗 */}
+      {/* 新建酒店弹窗 - 只填写基础信息 */}
       <Modal
-        title={editingHotel ? '编辑酒店信息' : '录入酒店信息'}
+        title="新建酒店"
         open={modalVisible}
         onOk={handleSave}
         onCancel={() => setModalVisible(false)}
-        width={700}
-        okText="保存"
+        width={500}
+        okText="创建"
         cancelText="取消"
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="name"
-                label="酒店名称"
-                rules={[{ required: true, message: '请输入酒店名称' }]}
-              >
-                <Input placeholder="请输入酒店名称" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="phone"
-                label="联系电话"
-                rules={[{ required: true, message: '请输入联系电话' }]}
-              >
-                <Input placeholder="请输入联系电话" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item
+            name="name"
+            label="酒店名称"
+            rules={[{ required: true, message: '请输入酒店名称' }]}
+          >
+            <Input placeholder="请输入酒店名称" maxLength={50} showCount />
+          </Form.Item>
 
           <Form.Item
-            name="address"
-            label="酒店地址"
-            rules={[{ required: true, message: '请输入酒店地址' }]}
+            name="hotelType"
+            label="酒店类型"
+            rules={[{ required: true, message: '请选择酒店类型' }]}
           >
-            <Input placeholder="请输入详细地址" />
+            <Select placeholder="请选择酒店类型">
+              <Select.Option value="business">商务酒店</Select.Option>
+              <Select.Option value="resort">度假酒店</Select.Option>
+              <Select.Option value="boutique">精品酒店</Select.Option>
+              <Select.Option value="budget">经济酒店</Select.Option>
+              <Select.Option value="apartment">公寓式酒店</Select.Option>
+            </Select>
           </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="star"
-                label="酒店星级"
-                rules={[{ required: true, message: '请选择酒店星级' }]}
-              >
-                <Select placeholder="请选择星级">
-                  <Select.Option value={1}>1星</Select.Option>
-                  <Select.Option value={2}>2星</Select.Option>
-                  <Select.Option value={3}>3星</Select.Option>
-                  <Select.Option value={4}>4星</Select.Option>
-                  <Select.Option value={5}>5星</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="roomCount"
-                label="房间数量"
-                rules={[{ required: true, message: '请输入房间数量' }]}
-              >
-                <InputNumber min={1} placeholder="请输入房间数量" style={{ width: '100%' }} />
-              </Form.Item>
+          <Row>
+            <Col span={24}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                提示：创建酒店后，系统将自动生成唯一酒店ID。您可以点击"编辑"按钮完善酒店详细信息。
+              </Text>
             </Col>
           </Row>
-
-          <Form.Item name="description" label="酒店描述">
-            <Input.TextArea rows={4} placeholder="请输入酒店描述信息" />
-          </Form.Item>
-
-          <Form.Item label="酒店图片">
-            <Upload listType="picture-card" maxCount={5}>
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>上传图片</div>
-              </div>
-            </Upload>
-            <span style={{ color: '#999' }}>最多上传5张图片</span>
-          </Form.Item>
         </Form>
       </Modal>
     </div>

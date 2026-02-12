@@ -21,7 +21,7 @@ model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique // 用户名，唯一
   password  String   // 密码（加密存储）
-  email     String   @unique // 邮箱，唯一
+  email     String?  // 邮箱（可选）
   phone     String   @unique // 手机号，唯一
   role      UserRole @default(merchant) // 用户角色，默认商户
   status    Int      @default(1) // 状态：1-正常，0-禁用

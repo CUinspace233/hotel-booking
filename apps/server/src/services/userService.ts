@@ -14,7 +14,7 @@ export interface LoginParams {
 export interface RegisterParams {
   username: string;
   password: string;
-  email: string;
+  email?: string; // 邮箱可选
   phone: string;
   role?: UserRole;
 }
@@ -100,10 +100,12 @@ class UserService {
       throw new ServiceError('用户名已存在');
     }
 
-    // 检查邮箱是否已存在
-    const existingEmail = await userRepository.findByEmail(email);
-    if (existingEmail) {
-      throw new ServiceError('邮箱已被注册');
+    // 检查邮箱是否已存在（仅当邮箱有值时检查）
+    if (email) {
+      const existingEmail = await userRepository.findByEmail(email);
+      if (existingEmail) {
+        throw new ServiceError('邮箱已被注册');
+      }
     }
 
     // 检查手机号是否已存在
@@ -120,7 +122,7 @@ class UserService {
     const createParams: CreateUserParams = {
       username,
       password: hashedPassword,
-      email,
+      email: email || undefined, // 邮箱可选
       phone,
       role: role || 'merchant'
     };

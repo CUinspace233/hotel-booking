@@ -19,7 +19,7 @@ interface RegisterFormData {
   username: string;
   password: string;
   confirmPassword: string;
-  email: string;
+  email?: string; // 邮箱可选
   phone: string;
   role: UserRole;
 }
@@ -74,7 +74,7 @@ const Login: React.FC = () => {
       const params: RegisterParams = {
         username: values.username,
         password: values.password,
-        email: values.email,
+        email: values.email || undefined, // 邮箱可选
         phone: values.phone,
         role: values.role
       };
@@ -162,14 +162,8 @@ const Login: React.FC = () => {
       >
         <Input prefix={<UserOutlined />} placeholder="用户名" />
       </Form.Item>
-      <Form.Item
-        name="email"
-        rules={[
-          { required: true, message: '请输入邮箱' },
-          { type: 'email', message: '请输入有效的邮箱地址' }
-        ]}
-      >
-        <Input prefix={<MailOutlined />} placeholder="邮箱" />
+      <Form.Item name="email" rules={[{ type: 'email', message: '请输入有效的邮箱地址' }]}>
+        <Input prefix={<MailOutlined />} placeholder="邮箱（选填）" />
       </Form.Item>
       <Form.Item
         name="phone"

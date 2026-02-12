@@ -1,6 +1,6 @@
 import type { RouteObject } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
-import { Login, Dashboard, HotelEdit, HotelAudit } from '@/pages';
+import { Login, Dashboard, HotelEdit, HotelAudit, HotelDetail } from '@/pages';
 
 // 路由配置
 export const routes: RouteObject[] = [
@@ -25,6 +25,10 @@ export const routes: RouteObject[] = [
       {
         path: 'hotel-edit',
         element: <HotelEdit />
+      },
+      {
+        path: 'hotel-detail/:hotelId',
+        element: <HotelDetail />
       },
       {
         path: 'hotel-audit',

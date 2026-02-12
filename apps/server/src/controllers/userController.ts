@@ -68,8 +68,8 @@ class UserController {
       const { username, password, email, phone, role } = req.body;
 
       // 参数校验
-      if (!username || !password || !email || !phone) {
-        return ResponseUtil.error(res, '用户名、密码、邮箱和手机号不能为空');
+      if (!username || !password || !phone) {
+        return ResponseUtil.error(res, '用户名、密码和手机号不能为空');
       }
 
       // 用户名格式校验
@@ -82,10 +82,12 @@ class UserController {
         return ResponseUtil.error(res, '密码长度需在6-20个字符之间');
       }
 
-      // 邮箱格式校验
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return ResponseUtil.error(res, '邮箱格式不正确');
+      // 邮箱格式校验（可选，如果填写了则验证格式）
+      if (email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return ResponseUtil.error(res, '邮箱格式不正确');
+        }
       }
 
       // 手机号格式校验

@@ -30,7 +30,7 @@ export interface LoginResult {
 export interface RegisterParams {
   username: string;
   password: string;
-  email: string;
+  email?: string; // 邮箱可选
   phone: string;
   role?: UserRole;
 }
@@ -41,7 +41,7 @@ export interface RegisterParams {
 export interface RegisterResult {
   id: number;
   username: string;
-  email: string;
+  email?: string; // 邮箱可选
   phone: string;
   role: UserRole;
 }

@@ -11,7 +11,7 @@ interface PrismaError {
 export interface CreateUserParams {
   username: string;
   password: string;
-  email: string;
+  email?: string; // 邮箱可选
   phone: string;
   role?: UserRole;
 }
@@ -58,7 +58,7 @@ class UserRepository {
    * 根据邮箱查找用户
    */
   async findByEmail(email: string): Promise<User | null> {
-    return prisma.user.findUnique({
+    return prisma.user.findFirst({
       where: { email }
     });
   }
