@@ -24,9 +24,9 @@ pnpm install
 
 ### 2. 启动开发环境
 
-#### 移动端 (C端 - Taro/Vue3)
+#### 移动端 (C端 - 原生小程序 / React + Taro)
 
-- **开发人员**: Vue 组
+- **开发人员**: React 组
 - **命令**:
 
 ```bash
@@ -67,7 +67,7 @@ pnpm run dev
 ```text
 root/
 ├── apps/
-│   ├── mobile/       # C端：用户预订端 (Taro + Vue3 + NutUI)
+│   ├── mobile/       # C端：用户预订端 (原生小程序 / React + Taro)
 │   ├── admin/        # B端：商户管理后台 (React + AntD)
 │   └── server/       # 服务端：API 接口 (Node + Prisma + SQLite)
 │
@@ -136,6 +136,7 @@ pnpm --filter server add lodash -D
 
 ## 常用链接
 
-- [NutUI 文档 (移动端)](https://nutui.jd.com/)
+- [Taro 文档 (移动端跨端框架)](https://taro-docs.jd.com/)
+- [React 文档](https://react.dev/)
 - [Ant Design 文档 (管理端)](https://ant.design/)
 - [Prisma 文档 (数据库)](https://www.prisma.io/docs)
