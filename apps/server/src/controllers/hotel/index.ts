@@ -2,3 +2,4 @@
 export { HotelProjectController } from './projectController';
 export { HotelDetailController } from './detailController';
 export { HotelRoomController } from './roomController';
+export { HotelPolicyController } from './policyController';

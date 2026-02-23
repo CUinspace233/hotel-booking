@@ -48,6 +48,17 @@ export function generateFacilityCode(): string {
 }
 
 /**
+ * 生成政策唯一业务ID
+ * 格式：POL + 时间戳后8位 + 随机4位字母数字
+ * 示例：POL12345678ABCD
+ */
+export function generatePolicyId(): string {
+  const timestamp = Date.now().toString().slice(-8);
+  const random = randomString(4, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789');
+  return `POL${timestamp}${random}`;
+}
+
+/**
  * 生成通用唯一ID
  * @param prefix 前缀
  */
