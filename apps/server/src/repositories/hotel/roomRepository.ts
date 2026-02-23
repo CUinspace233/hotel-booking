@@ -41,10 +41,16 @@ class HotelRoomRepository {
 
   /**
    * 根据酒店ID查找所有房型
+   * @param version 版本类型：draft / published
    */
-  async findByHotelId(hotelId: string, status?: string): Promise<HotelRoom[]> {
+  async findByHotelId(
+    hotelId: string,
+    status?: string,
+    version: string = 'draft'
+  ): Promise<HotelRoom[]> {
     const where: Prisma.HotelRoomWhereInput = {
       hotelId,
+      version,
       isDeleted: false
     };
 
@@ -62,6 +68,17 @@ class HotelRoomRepository {
       },
       orderBy: { sortOrder: 'asc' }
     });
+  }
+
+  /**
+   * 根据酒店ID和版本软删除所有房型
+   */
+  async softDeleteByHotelIdAndVersion(hotelId: string, version: string): Promise<number> {
+    const result = await prisma.hotelRoom.updateMany({
+      where: { hotelId, version, isDeleted: false },
+      data: { isDeleted: true }
+    });
+    return result.count;
   }
 
   /**

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Table,
@@ -8,9 +8,14 @@ import {
   message,
   Tag,
   Input,
-  Select,
   Form,
-  Descriptions
+  Descriptions,
+  Spin,
+  Row,
+  Col,
+  Empty,
+  Select,
+  Popconfirm
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -18,99 +23,131 @@ import {
   CloseCircleOutlined,
   EyeOutlined,
   AuditOutlined,
+  ReloadOutlined,
   StopOutlined,
   PlayCircleOutlined
 } from '@ant-design/icons';
-
-// 酒店审核数据类型
-interface HotelAuditData {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  star: number;
-  roomCount: number;
-  description: string;
-  status: 'pending' | 'approved' | 'rejected' | 'published' | 'offline';
-  submitter: string;
-  submitTime: string;
-  auditTime?: string;
-  auditor?: string;
-  auditRemark?: string;
-}
-
-// 模拟数据
-const mockData: HotelAuditData[] = [
-  {
-    id: '1',
-    name: '待审核酒店A',
-    address: '北京市海淀区xxx路xxx号',
-    phone: '010-11112222',
-    star: 5,
-    roomCount: 180,
-    description: '高端商务酒店，设施齐全',
-    status: 'pending',
-    submitter: '张三',
-    submitTime: '2024-01-18 10:30:00'
-  },
-  {
-    id: '2',
-    name: '已发布酒店B',
-    address: '上海市静安区xxx路xxx号',
-    phone: '021-33334444',
-    star: 4,
-    roomCount: 120,
-    description: '精品商务酒店',
-    status: 'published',
-    submitter: '李四',
-    submitTime: '2024-01-15 14:20:00',
-    auditTime: '2024-01-16 09:00:00',
-    auditor: '管理员',
-    auditRemark: '信息完整，符合发布标准'
-  },
-  {
-    id: '3',
-    name: '已驳回酒店C',
-    address: '广州市天河区xxx路xxx号',
-    phone: '020-55556666',
-    star: 3,
-    roomCount: 80,
-    description: '经济型酒店',
-    status: 'rejected',
-    submitter: '王五',
-    submitTime: '2024-01-17 16:45:00',
-    auditTime: '2024-01-18 11:30:00',
-    auditor: '管理员',
-    auditRemark: '酒店图片缺失，请补充后重新提交'
-  }
-];
+import { hotelApi, POLICY_TYPE_OPTIONS } from '@/api/hotel';
+import type { HotelProject, HotelFormData, HotelStatus } from '@/api/hotel';
 
 // 状态标签映射
-const statusMap = {
+const statusMap: Record<string, { color: string; text: string }> = {
+  draft: { color: 'default', text: '草稿' },
   pending: { color: 'processing', text: '待审核' },
-  approved: { color: 'success', text: '审核通过' },
+  pending_update: { color: 'processing', text: '二次审核' },
+  approved: { color: 'success', text: '已通过' },
   rejected: { color: 'error', text: '已驳回' },
-  published: { color: 'green', text: '已发布' },
   offline: { color: 'default', text: '已下线' }
 };
 
+// 筛选状态选项
+const filterStatusOptions = [
+  { value: 'pending', label: '待审核' },
+  { value: 'approved', label: '已通过' },
+  { value: 'offline', label: '已下线' },
+  { value: 'rejected', label: '已驳回' }
+];
+
 const HotelAudit: React.FC = () => {
-  const [dataSource, setDataSource] = useState<HotelAuditData[]>(mockData);
+  const [dataSource, setDataSource] = useState<HotelProject[]>([]);
+  const [loading, setLoading] = useState(false);
   const [detailVisible, setDetailVisible] = useState(false);
   const [auditVisible, setAuditVisible] = useState(false);
-  const [currentHotel, setCurrentHotel] = useState<HotelAuditData | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [offlineVisible, setOfflineVisible] = useState(false);
+  const [currentHotel, setCurrentHotel] = useState<HotelProject | null>(null);
+  const [currentDetail, setCurrentDetail] = useState<HotelFormData | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [filterStatus, setFilterStatus] = useState<HotelStatus | 'pending'>('pending');
   const [form] = Form.useForm();
+  const [offlineForm] = Form.useForm();
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+
+  // 加载酒店列表
+  const loadHotels = useCallback(async () => {
+    setLoading(true);
+    try {
+      // 如果筛选待审核，需要合并首次审核和二次审核
+      if (filterStatus === 'pending') {
+        const [pendingResult, pendingUpdateResult] = await Promise.all([
+          hotelApi.getList({
+            status: 'pending',
+            page: pagination.current,
+            pageSize: pagination.pageSize,
+            keyword: searchKeyword || undefined
+          }),
+          hotelApi.getList({
+            status: 'pending_update',
+            page: pagination.current,
+            pageSize: pagination.pageSize,
+            keyword: searchKeyword || undefined
+          })
+        ]);
+
+        const combinedList = [...pendingResult.list, ...pendingUpdateResult.list].sort((a, b) => {
+          const timeA = a.submitTime || a.createdAt;
+          const timeB = b.submitTime || b.createdAt;
+          return new Date(timeB).getTime() - new Date(timeA).getTime();
+        });
+
+        setDataSource(combinedList);
+        setPagination((prev) => ({
+          ...prev,
+          total: pendingResult.pagination.total + pendingUpdateResult.pagination.total
+        }));
+      } else {
+        const result = await hotelApi.getList({
+          status: filterStatus,
+          page: pagination.current,
+          pageSize: pagination.pageSize,
+          keyword: searchKeyword || undefined
+        });
+
+        setDataSource(result.list);
+        setPagination((prev) => ({
+          ...prev,
+          total: result.pagination.total
+        }));
+      }
+    } catch (error) {
+      console.error('获取酒店列表失败:', error);
+      message.error('获取酒店列表失败');
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.current, pagination.pageSize, searchKeyword, filterStatus]);
+
+  // 初始加载
+  useEffect(() => {
+    loadHotels();
+  }, [loadHotels]);
 
   // 查看详情
-  const handleViewDetail = (record: HotelAuditData) => {
+  const handleViewDetail = async (record: HotelProject) => {
     setCurrentHotel(record);
     setDetailVisible(true);
+    setDetailLoading(true);
+
+    try {
+      const formData = await hotelApi.getFormData(record.hotelId);
+      setCurrentDetail(formData);
+    } catch (error) {
+      console.error('获取酒店详情失败:', error);
+      message.error('获取酒店详情失败');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // 获取政策类型名称
+  const getPolicyTypeName = (type: string) => {
+    const option = POLICY_TYPE_OPTIONS.find((o) => o.value === type);
+    return option ? option.label : type;
   };
 
   // 打开审核弹窗
-  const handleOpenAudit = (record: HotelAuditData) => {
+  const handleOpenAudit = (record: HotelProject) => {
     setCurrentHotel(record);
     form.resetFields();
     setAuditVisible(true);
@@ -119,22 +156,23 @@ const HotelAudit: React.FC = () => {
   // 审核通过
   const handleAuditPass = async () => {
     if (!currentHotel) return;
-    const values = await form.validateFields();
-    setDataSource(
-      dataSource.map((item) =>
-        item.id === currentHotel.id
-          ? {
-              ...item,
-              status: 'approved' as const,
-              auditTime: new Date().toLocaleString(),
-              auditor: '管理员',
-              auditRemark: values.remark || '审核通过'
-            }
-          : item
-      )
-    );
-    message.success('审核通过');
-    setAuditVisible(false);
+
+    try {
+      // 对于二次审核的酒店，需要发布草稿
+      if (currentHotel.status === 'pending_update') {
+        await hotelApi.publishDraft(currentHotel.hotelId);
+        message.success('审核通过，修改已发布');
+      } else {
+        // 首次审核通过后也需要发布草稿
+        await hotelApi.publishDraft(currentHotel.hotelId);
+        message.success('审核通过');
+      }
+      setAuditVisible(false);
+      loadHotels();
+    } catch (error) {
+      console.error('审核失败:', error);
+      message.error('审核失败');
+    }
   };
 
   // 审核驳回
@@ -145,107 +183,118 @@ const HotelAudit: React.FC = () => {
       message.warning('驳回时请填写原因');
       return;
     }
-    setDataSource(
-      dataSource.map((item) =>
-        item.id === currentHotel.id
-          ? {
-              ...item,
-              status: 'rejected' as const,
-              auditTime: new Date().toLocaleString(),
-              auditor: '管理员',
-              auditRemark: values.remark
-            }
-          : item
-      )
-    );
-    message.success('已驳回');
-    setAuditVisible(false);
+
+    try {
+      await hotelApi.updateStatus(currentHotel.hotelId, 'rejected');
+      message.success('已驳回');
+      setAuditVisible(false);
+      loadHotels();
+    } catch (error) {
+      console.error('驳回失败:', error);
+      message.error('驳回失败');
+    }
   };
 
-  // 发布酒店
-  const handlePublish = (record: HotelAuditData) => {
-    setDataSource(
-      dataSource.map((item) =>
-        item.id === record.id ? { ...item, status: 'published' as const } : item
-      )
-    );
-    message.success('发布成功');
+  // 打开下线弹窗
+  const handleOpenOffline = (record: HotelProject) => {
+    setCurrentHotel(record);
+    offlineForm.resetFields();
+    setOfflineVisible(true);
   };
 
-  // 下线酒店
-  const handleOffline = (record: HotelAuditData) => {
-    setDataSource(
-      dataSource.map((item) =>
-        item.id === record.id ? { ...item, status: 'offline' as const } : item
-      )
-    );
-    message.success('已下线');
+  // 确认下线
+  const handleConfirmOffline = async () => {
+    if (!currentHotel) return;
+    const values = await offlineForm.validateFields();
+
+    try {
+      await hotelApi.setOffline(currentHotel.hotelId, values.reason);
+      message.success('下线成功');
+      setOfflineVisible(false);
+      loadHotels();
+    } catch (error) {
+      console.error('下线失败:', error);
+      message.error('下线失败');
+    }
   };
 
-  // 重新上线
-  const handleOnline = (record: HotelAuditData) => {
-    setDataSource(
-      dataSource.map((item) =>
-        item.id === record.id ? { ...item, status: 'published' as const } : item
-      )
-    );
-    message.success('已重新上线');
+  // 恢复上线
+  const handleSetOnline = async (record: HotelProject) => {
+    try {
+      await hotelApi.setOnline(record.hotelId);
+      message.success('恢复上线成功');
+      loadHotels();
+    } catch (error) {
+      console.error('恢复上线失败:', error);
+      message.error('恢复上线失败');
+    }
   };
 
-  // 过滤数据
-  const filteredData = dataSource.filter((item) => {
-    const statusMatch = filterStatus === 'all' || item.status === filterStatus;
-    const keywordMatch =
-      !searchKeyword || item.name.includes(searchKeyword) || item.address.includes(searchKeyword);
-    return statusMatch && keywordMatch;
-  });
+  // 搜索
+  const handleSearch = (value: string) => {
+    setSearchKeyword(value);
+    setPagination((prev) => ({ ...prev, current: 1 }));
+  };
+
+  // 状态筛选变化
+  const handleStatusChange = (value: HotelStatus | 'pending') => {
+    setFilterStatus(value);
+    setPagination((prev) => ({ ...prev, current: 1 }));
+  };
+
+  // 分页变化
+  const handleTableChange = (paginationInfo: { current?: number; pageSize?: number }) => {
+    setPagination((prev) => ({
+      ...prev,
+      current: paginationInfo.current || 1,
+      pageSize: paginationInfo.pageSize || 10
+    }));
+  };
 
   // 表格列定义
-  const columns: ColumnsType<HotelAuditData> = [
+  const columns: ColumnsType<HotelProject> = [
+    {
+      title: '酒店ID',
+      dataIndex: 'hotelId',
+      key: 'hotelId',
+      width: 160
+    },
     {
       title: '酒店名称',
       dataIndex: 'name',
       key: 'name',
-      width: 160
-    },
-    {
-      title: '地址',
-      dataIndex: 'address',
-      key: 'address',
-      ellipsis: true
-    },
-    {
-      title: '星级',
-      dataIndex: 'star',
-      key: 'star',
-      width: 80,
-      render: (star: number) => `${star}星`
+      width: 180,
+      render: (name: string | null) => name || '未命名'
     },
     {
       title: '提交人',
-      dataIndex: 'submitter',
-      key: 'submitter',
+      dataIndex: 'creator',
+      key: 'creator',
       width: 100
     },
     {
       title: '提交时间',
       dataIndex: 'submitTime',
       key: 'submitTime',
-      width: 170
+      width: 170,
+      render: (time: string | null, record: HotelProject) => {
+        const displayTime = time || record.createdAt;
+        return displayTime ? new Date(displayTime).toLocaleString() : '-';
+      }
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: keyof typeof statusMap) => (
-        <Tag color={statusMap[status].color}>{statusMap[status].text}</Tag>
+      render: (status: string) => (
+        <Tag color={statusMap[status]?.color || 'default'}>{statusMap[status]?.text || status}</Tag>
       )
     },
     {
       title: '操作',
       key: 'action',
-      width: 220,
+      width: 260,
       render: (_, record) => (
         <Space size="small">
           <Button
@@ -256,7 +305,8 @@ const HotelAudit: React.FC = () => {
           >
             详情
           </Button>
-          {record.status === 'pending' && (
+          {/* 待审核状态显示审核按钮 */}
+          {(record.status === 'pending' || record.status === 'pending_update') && (
             <Button
               type="link"
               size="small"
@@ -266,36 +316,36 @@ const HotelAudit: React.FC = () => {
               审核
             </Button>
           )}
+          {/* 已通过状态显示下线按钮 */}
           {record.status === 'approved' && (
-            <Button
-              type="link"
-              size="small"
-              icon={<PlayCircleOutlined />}
-              onClick={() => handlePublish(record)}
-            >
-              发布
-            </Button>
-          )}
-          {record.status === 'published' && (
             <Button
               type="link"
               size="small"
               danger
               icon={<StopOutlined />}
-              onClick={() => handleOffline(record)}
+              onClick={() => handleOpenOffline(record)}
             >
               下线
             </Button>
           )}
+          {/* 已下线状态显示恢复上线按钮 */}
           {record.status === 'offline' && (
-            <Button
-              type="link"
-              size="small"
-              icon={<PlayCircleOutlined />}
-              onClick={() => handleOnline(record)}
+            <Popconfirm
+              title="确认恢复上线"
+              description="确定要恢复该酒店上线吗？"
+              onConfirm={() => handleSetOnline(record)}
+              okText="确认"
+              cancelText="取消"
             >
-              上线
-            </Button>
+              <Button
+                type="link"
+                size="small"
+                icon={<PlayCircleOutlined />}
+                style={{ color: '#52c41a' }}
+              >
+                恢复上线
+              </Button>
+            </Popconfirm>
           )}
         </Space>
       )
@@ -312,71 +362,207 @@ const HotelAudit: React.FC = () => {
       <Card>
         {/* 筛选区域 */}
         <Space style={{ marginBottom: 16 }}>
+          <Select
+            value={filterStatus}
+            onChange={handleStatusChange}
+            style={{ width: 120 }}
+            options={filterStatusOptions}
+          />
           <Input.Search
-            placeholder="搜索酒店名称/地址"
+            placeholder="搜索酒店名称"
             allowClear
             style={{ width: 240 }}
-            onSearch={setSearchKeyword}
+            onSearch={handleSearch}
           />
-          <Select value={filterStatus} onChange={setFilterStatus} style={{ width: 140 }}>
-            <Select.Option value="all">全部状态</Select.Option>
-            <Select.Option value="pending">待审核</Select.Option>
-            <Select.Option value="approved">审核通过</Select.Option>
-            <Select.Option value="rejected">已驳回</Select.Option>
-            <Select.Option value="published">已发布</Select.Option>
-            <Select.Option value="offline">已下线</Select.Option>
-          </Select>
+          <Button icon={<ReloadOutlined />} onClick={loadHotels}>
+            刷新
+          </Button>
         </Space>
 
         <Table
           columns={columns}
-          dataSource={filteredData}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
+          dataSource={dataSource}
+          rowKey="hotelId"
+          loading={loading}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`
+          }}
+          onChange={handleTableChange}
         />
       </Card>
 
       {/* 详情弹窗 */}
       <Modal
-        title="酒店详情"
-        open={detailVisible}
-        onCancel={() => setDetailVisible(false)}
-        footer={<Button onClick={() => setDetailVisible(false)}>关闭</Button>}
-        width={700}
-      >
-        {currentHotel && (
-          <Descriptions bordered column={2} style={{ marginTop: 16 }}>
-            <Descriptions.Item label="酒店名称">{currentHotel.name}</Descriptions.Item>
-            <Descriptions.Item label="星级">{currentHotel.star}星</Descriptions.Item>
-            <Descriptions.Item label="联系电话">{currentHotel.phone}</Descriptions.Item>
-            <Descriptions.Item label="房间数量">{currentHotel.roomCount}</Descriptions.Item>
-            <Descriptions.Item label="地址" span={2}>
-              {currentHotel.address}
-            </Descriptions.Item>
-            <Descriptions.Item label="描述" span={2}>
-              {currentHotel.description}
-            </Descriptions.Item>
-            <Descriptions.Item label="提交人">{currentHotel.submitter}</Descriptions.Item>
-            <Descriptions.Item label="提交时间">{currentHotel.submitTime}</Descriptions.Item>
-            <Descriptions.Item label="当前状态">
-              <Tag color={statusMap[currentHotel.status].color}>
-                {statusMap[currentHotel.status].text}
+        title={
+          <Space>
+            酒店详情
+            {currentHotel && (
+              <Tag color={statusMap[currentHotel.status]?.color || 'default'}>
+                {statusMap[currentHotel.status]?.text || currentHotel.status}
               </Tag>
-            </Descriptions.Item>
-            {currentHotel.auditor && (
-              <Descriptions.Item label="审核人">{currentHotel.auditor}</Descriptions.Item>
             )}
-            {currentHotel.auditTime && (
-              <Descriptions.Item label="审核时间" span={2}>
-                {currentHotel.auditTime}
+          </Space>
+        }
+        open={detailVisible}
+        onCancel={() => {
+          setDetailVisible(false);
+          setCurrentDetail(null);
+        }}
+        footer={
+          <Space>
+            <Button onClick={() => setDetailVisible(false)}>关闭</Button>
+            {currentHotel?.status === 'pending' && (
+              <Button
+                type="primary"
+                icon={<AuditOutlined />}
+                onClick={() => {
+                  setDetailVisible(false);
+                  if (currentHotel) handleOpenAudit(currentHotel);
+                }}
+              >
+                去审核
+              </Button>
+            )}
+          </Space>
+        }
+        width={900}
+      >
+        {detailLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Spin tip="加载中..." />
+          </div>
+        ) : currentDetail ? (
+          <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+            {/* 基本信息 */}
+            <h4 style={{ borderBottom: '1px solid #eee', paddingBottom: 8, marginBottom: 16 }}>
+              基本信息
+            </h4>
+            <Descriptions bordered column={2} size="small">
+              <Descriptions.Item label="酒店ID">{currentHotel?.hotelId}</Descriptions.Item>
+              <Descriptions.Item label="酒店名称">
+                {currentDetail.name || '未命名'}
               </Descriptions.Item>
-            )}
-            {currentHotel.auditRemark && (
-              <Descriptions.Item label="审核备注" span={2}>
-                {currentHotel.auditRemark}
+              <Descriptions.Item label="星级">
+                {currentDetail.starRating ? `${currentDetail.starRating}星` : '未设置'}
               </Descriptions.Item>
+              <Descriptions.Item label="联系电话">
+                {currentDetail.phone || '未设置'}
+              </Descriptions.Item>
+              <Descriptions.Item label="地址" span={2}>
+                {currentDetail.address || '未设置'}
+              </Descriptions.Item>
+              <Descriptions.Item label="描述" span={2}>
+                {currentDetail.description || '未设置'}
+              </Descriptions.Item>
+              <Descriptions.Item label="提交人">{currentHotel?.creator}</Descriptions.Item>
+              <Descriptions.Item label="提交时间">
+                {currentHotel?.submitTime
+                  ? new Date(currentHotel.submitTime).toLocaleString()
+                  : currentHotel?.createdAt
+                    ? new Date(currentHotel.createdAt).toLocaleString()
+                    : '-'}
+              </Descriptions.Item>
+            </Descriptions>
+
+            {/* 设施政策 */}
+            <h4
+              style={{
+                borderBottom: '1px solid #eee',
+                paddingBottom: 8,
+                marginTop: 24,
+                marginBottom: 16
+              }}
+            >
+              设施政策
+            </h4>
+            {currentDetail.policies && currentDetail.policies.length > 0 ? (
+              <Row gutter={[16, 16]}>
+                {currentDetail.policies.map((policy, index) => (
+                  <Col span={12} key={policy.id || index}>
+                    <Card size="small" title={getPolicyTypeName(policy.policyType)}>
+                      <div>
+                        <strong>政策名称：</strong>
+                        {policy.policyName}
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <strong>政策内容：</strong>
+                        {policy.policyContent || '未填写'}
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            ) : (
+              <Empty description="暂无政策信息" image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )}
-          </Descriptions>
+
+            {/* 房型信息 */}
+            <h4
+              style={{
+                borderBottom: '1px solid #eee',
+                paddingBottom: 8,
+                marginTop: 24,
+                marginBottom: 16
+              }}
+            >
+              房型信息
+            </h4>
+            {currentDetail.roomDetails && currentDetail.roomDetails.length > 0 ? (
+              <Row gutter={[16, 16]}>
+                {currentDetail.roomDetails.map((room, index) => (
+                  <Col span={12} key={room.id || index}>
+                    <Card size="small" title={room.roomName || '未命名房型'}>
+                      <Row gutter={16}>
+                        <Col span={12}>
+                          <div>
+                            <strong>床铺数量：</strong>
+                            {room.bedCount || '未设置'}
+                          </div>
+                        </Col>
+                        <Col span={12}>
+                          <div>
+                            <strong>房间大小：</strong>
+                            {room.roomSize || '未设置'}
+                          </div>
+                        </Col>
+                      </Row>
+                      <Row gutter={16} style={{ marginTop: 8 }}>
+                        <Col span={12}>
+                          <div>
+                            <strong>入住人数：</strong>
+                            {room.maxOccupancy || '未设置'}
+                          </div>
+                        </Col>
+                        <Col span={12}>
+                          <div>
+                            <strong>所在楼层：</strong>
+                            {room.floor || '未设置'}
+                          </div>
+                        </Col>
+                      </Row>
+                      <Row gutter={16} style={{ marginTop: 8 }}>
+                        <Col span={12}>
+                          <div>
+                            <strong>房间价格：</strong>
+                            {room.basePrice ? `¥${room.basePrice}/晚` : '未设置'}
+                          </div>
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            ) : (
+              <Empty description="暂无房型信息" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
+          </div>
+        ) : (
+          <Empty description="暂无数据" />
         )}
       </Modal>
 
@@ -401,13 +587,45 @@ const HotelAudit: React.FC = () => {
         {currentHotel && (
           <>
             <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="酒店名称">{currentHotel.name}</Descriptions.Item>
-              <Descriptions.Item label="酒店地址">{currentHotel.address}</Descriptions.Item>
-              <Descriptions.Item label="提交人">{currentHotel.submitter}</Descriptions.Item>
+              <Descriptions.Item label="酒店ID">{currentHotel.hotelId}</Descriptions.Item>
+              <Descriptions.Item label="酒店名称">
+                {currentHotel.name || '未命名'}
+              </Descriptions.Item>
+              <Descriptions.Item label="提交人">{currentHotel.creator}</Descriptions.Item>
             </Descriptions>
             <Form form={form} layout="vertical">
               <Form.Item name="remark" label="审核备注">
                 <Input.TextArea rows={3} placeholder="请输入审核备注（驳回时必填）" />
+              </Form.Item>
+            </Form>
+          </>
+        )}
+      </Modal>
+
+      {/* 下线弹窗 */}
+      <Modal
+        title="酒店下线"
+        open={offlineVisible}
+        onCancel={() => setOfflineVisible(false)}
+        onOk={handleConfirmOffline}
+        okText="确认下线"
+        okButtonProps={{ danger: true }}
+        width={500}
+      >
+        {currentHotel && (
+          <>
+            <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="酒店ID">{currentHotel.hotelId}</Descriptions.Item>
+              <Descriptions.Item label="酒店名称">
+                {currentHotel.name || '未命名'}
+              </Descriptions.Item>
+              <Descriptions.Item label="当前状态">
+                <Tag color="success">已通过</Tag>
+              </Descriptions.Item>
+            </Descriptions>
+            <Form form={offlineForm} layout="vertical">
+              <Form.Item name="reason" label="下线原因">
+                <Input.TextArea rows={3} placeholder="请输入下线原因（可选）" />
               </Form.Item>
             </Form>
           </>

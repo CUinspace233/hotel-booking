@@ -70,9 +70,10 @@ class HotelProjectService {
 
   /**
    * 获取项目（含详情）
+   * @param version 版本类型：draft / published
    */
-  async getWithDetail(hotelId: string) {
-    const project = await hotelProjectRepository.findByHotelIdWithDetail(hotelId);
+  async getWithDetail(hotelId: string, version: string = 'draft') {
+    const project = await hotelProjectRepository.findByHotelIdWithDetail(hotelId, version);
     if (!project) {
       throw new ServiceError('酒店项目不存在', 404);
     }
@@ -81,9 +82,10 @@ class HotelProjectService {
 
   /**
    * 获取完整酒店信息（三层聚合）
+   * @param version 版本类型：draft / published
    */
-  async getFullInfo(hotelId: string) {
-    const project = await hotelProjectRepository.findByHotelIdWithAll(hotelId);
+  async getFullInfo(hotelId: string, version: string = 'draft') {
+    const project = await hotelProjectRepository.findByHotelIdWithAll(hotelId, version);
     if (!project) {
       throw new ServiceError('酒店项目不存在', 404);
     }
@@ -203,9 +205,10 @@ class HotelProjectService {
     const allowedTransitions: Record<HotelStatus, HotelStatus[]> = {
       draft: ['pending'], // 草稿 -> 提审
       pending: ['approved', 'rejected'], // 待审核 -> 通过/拒绝
-      approved: ['offline'], // 已通过 -> 下线
+      approved: ['offline', 'pending_update'], // 已通过 -> 下线/二次提审
       rejected: ['pending', 'draft'], // 已拒绝 -> 重新提审/回到草稿
-      offline: ['pending'] // 已下线 -> 重新提审
+      offline: ['approved', 'pending'], // 已下线 -> 恢复上线/重新提审
+      pending_update: ['approved', 'rejected'] // 二次提审中 -> 通过/拒绝
     };
 
     const allowed = allowedTransitions[currentStatus] || [];
@@ -226,7 +229,8 @@ class HotelProjectService {
       pending: '待审核',
       approved: '已通过',
       rejected: '已拒绝',
-      offline: '已下线'
+      offline: '已下线',
+      pending_update: '二次提审中'
     };
     return labels[status] || status;
   }
