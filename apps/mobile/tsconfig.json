@@ -15,11 +15,11 @@
     "sourceMap": true,
     "baseUrl": ".",
     "rootDir": ".",
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "allowJs": true,
     "resolveJsonModule": true,
     "typeRoots": ["node_modules/@types"]
   },
-  "include": ["./src", "./types", "components.d.ts"],
+  "include": ["./src", "./types"],
   "compileOnSave": false
 }
