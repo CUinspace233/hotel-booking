@@ -40,18 +40,19 @@ model HotelProject {
   hotelId     String    @unique @map("hotel_id")     // 酒店唯一业务ID
   name        String?                                // 酒店名称（可选）
   hotelType   String?   @map("hotel_type")           // 酒店类型
-  status      String    @default("draft")            // 状态：draft/pending/approved/rejected/offline
+  status      String    @default("draft")            // 状态：draft/pending/approved/rejected/offline/pending_update
   creatorId   Int       @map("creator_id")           // 创建人ID
   creator     String                                 // 创建人姓名
   remark      String?                                // 备注
   submitTime  DateTime? @map("submit_time")          // 提交审核时间
+  hasUnpublishedChanges Boolean @default(false) @map("has_unpublished_changes") // 是否有未发布的修改
   isDeleted   Boolean   @default(false) @map("is_deleted")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // 关联
   user        User          @relation(fields: [creatorId], references: [id])
-  detail      HotelDetail?  // 1:1 关联详情
+  details     HotelDetail[] // 1:N 关联详情（支持多版本）
   rooms       HotelRoom[]   // 1:N 关联房型
 
   @@map("hotel_projects")
@@ -60,7 +61,8 @@ model HotelProject {
 // ===================== 第二层：酒店详情表 =====================
 model HotelDetail {
   id              Int      @id @default(autoincrement())
-  hotelId         String   @unique @map("hotel_id")   // 酒店业务ID
+  hotelId         String   @map("hotel_id")           // 酒店业务ID
+  version         String   @default("draft")          // 版本：draft（草稿）/ published（已发布）
 
   // 基本信息
   fullName        String?  @map("full_name")          // 酒店全称
@@ -82,7 +84,7 @@ model HotelDetail {
   latitude        Float?                              // 纬度
 
   // 联系方式
-  contactPhone    String?  @map("contact_phone")
+  phone           String?                             // 联系电话（与前端统一）
   contactEmail    String?  @map("contact_email")
   frontDeskPhone  String?  @map("front_desk_phone")
   fax             String?
@@ -92,7 +94,8 @@ model HotelDetail {
   checkOutTime    String?  @default("12:00") @map("check_out_time")
   childrenPolicy  String?  @map("children_policy")
   petPolicy       String?  @map("pet_policy")
-  cancelPolicy    String?  @map("cancel_policy")
+  cancellationPolicy String? @map("cancellation_policy")  // 与前端统一
+  otherPolicies   String?  @map("other_policies")         // 前端独有字段
 
   // 其他信息
   description     String?                             // 酒店描述
@@ -107,8 +110,32 @@ model HotelDetail {
   project         HotelProject    @relation(fields: [hotelId], references: [hotelId])
   facilities      HotelFacility[] // 1:N 酒店设施
   images          HotelImage[]    // 1:N 酒店图片
+  policies        HotelPolicy[]   // 1:N 酒店政策
 
+  @@unique([hotelId, version])
   @@map("hotel_details")
+}
+
+// ===================== 酒店政策表 =====================
+model HotelPolicy {
+  id              Int      @id @default(autoincrement())
+  policyId        String   @unique @map("policy_id")    // 政策唯一业务ID
+  hotelId         String   @map("hotel_id")             // 所属酒店
+  version         String   @default("draft")            // 版本：draft / published
+
+  policyType      String   @map("policy_type")          // 政策类型: checkIn/checkOut/pet/cancel/parking/other
+  policyName      String   @map("policy_name")          // 政策名称
+  policyContent   String?  @map("policy_content")       // 政策内容
+
+  sortOrder       Int      @default(0) @map("sort_order")
+  isDeleted       Boolean  @default(false) @map("is_deleted")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // 关联（关联到详情的 hotelId，version 需保持一致）
+  detail          HotelDetail @relation(fields: [hotelId, version], references: [hotelId, version])
+
+  @@map("hotel_policies")
 }
 
 // ===================== 第三层：房型信息表 =====================
@@ -116,20 +143,21 @@ model HotelRoom {
   id              Int      @id @default(autoincrement())
   roomId          String   @unique @map("room_id")    // 房型唯一业务ID
   hotelId         String   @map("hotel_id")           // 所属酒店
+  version         String   @default("draft")          // 版本：draft / published
 
-  // 房型基本信息
-  name            String                              // 房型名称
-  roomType        String   @map("room_type")          // 房型类型
+  // 房型基本信息（与前端 RoomDetail 字段统一）
+  roomName        String   @map("room_name")          // 房间名称
+  roomType        String?  @map("room_type")          // 房型类型
   bedType         String?  @map("bed_type")           // 床型
-  bedCount        Int?     @default(1) @map("bed_count")
+  bedCount        String?  @map("bed_count")          // 床铺数量（String，与前端统一）
   bedSize         String?  @map("bed_size")           // 床尺寸
-  area            Float?                              // 房间面积
-  floorRange      String?  @map("floor_range")        // 楼层范围
+  roomSize        String?  @map("room_size")          // 房间大小（如"30㎡"，与前端统一）
+  floor           String?                             // 所在楼层（与前端统一）
   windowType      String?  @map("window_type")        // 窗户类型
-  maxGuests       Int?     @default(2) @map("max_guests")
+  maxOccupancy    String?  @map("max_occupancy")      // 入住人数（String，与前端统一）
 
   // 价格与库存
-  basePrice       Float    @map("base_price")         // 基础价格
+  basePrice       Int?     @map("base_price")         // 基础价格（单位：分）
   breakfastType   String?  @default("none") @map("breakfast_type")
   breakfastCount  Int?     @default(0) @map("breakfast_count")
   totalCount      Int?     @default(0) @map("total_count")
@@ -159,15 +187,16 @@ model HotelRoom {
 model HotelFacility {
   id               Int      @id @default(autoincrement())
   hotelId          String   @map("hotel_id")
+  version          String   @default("draft")          // 版本：draft / published
   facilityCode     String   @map("facility_code")
   facilityName     String   @map("facility_name")
   facilityCategory String?  @default("general") @map("facility_category")
   isFree           Boolean  @default(true) @map("is_free")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  detail           HotelDetail @relation(fields: [hotelId], references: [hotelId])
+  detail           HotelDetail @relation(fields: [hotelId, version], references: [hotelId, version])
 
-  @@unique([hotelId, facilityCode])
+  @@unique([hotelId, version, facilityCode])
   @@map("hotel_facilities")
 }
 
@@ -175,12 +204,13 @@ model HotelFacility {
 model HotelImage {
   id        Int      @id @default(autoincrement())
   hotelId   String   @map("hotel_id")
+  version   String   @default("draft")               // 版本：draft / published
   imageUrl  String   @map("image_url")
   imageType String   @default("hotel") @map("image_type")
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")
 
-  detail    HotelDetail @relation(fields: [hotelId], references: [hotelId])
+  detail    HotelDetail @relation(fields: [hotelId, version], references: [hotelId, version])
 
   @@map("hotel_images")
 }

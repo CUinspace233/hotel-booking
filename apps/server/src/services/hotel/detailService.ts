@@ -19,9 +19,10 @@ export class ServiceError extends Error {
 class HotelDetailService {
   /**
    * 获取酒店详情（含设施和图片）
+   * @param version 版本类型：draft / published
    */
-  async getByHotelId(hotelId: string) {
-    const detail = await hotelDetailRepository.findByHotelIdWithRelations(hotelId);
+  async getByHotelId(hotelId: string, version: string = 'draft') {
+    const detail = await hotelDetailRepository.findByHotelIdWithRelations(hotelId, version);
     if (!detail) {
       throw new ServiceError('酒店详情不存在', 404);
     }
@@ -30,10 +31,15 @@ class HotelDetailService {
 
   /**
    * 更新酒店详情
+   * @param version 版本类型：draft / published
    */
-  async update(hotelId: string, params: UpdateHotelDetailParams) {
+  async update(hotelId: string, params: UpdateHotelDetailParams, version: string = 'draft') {
     // 使用 upsert，如果不存在则创建
-    const detail = await hotelDetailRepository.upsert(hotelId, params as Record<string, unknown>);
+    const detail = await hotelDetailRepository.upsert(
+      hotelId,
+      params as Record<string, unknown>,
+      version
+    );
     return detail;
   }
 

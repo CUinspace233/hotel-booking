@@ -10,40 +10,29 @@ import {
   InputNumber,
   Descriptions,
   Row,
-  Col
+  Col,
+  Select,
+  Modal,
+  Tag,
+  message
 } from 'antd';
-import { ArrowLeftOutlined, HomeOutlined, EditOutlined } from '@ant-design/icons';
+import {
+  ArrowLeftOutlined,
+  HomeOutlined,
+  EditOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+  SendOutlined
+} from '@ant-design/icons';
+import { hotelApi, POLICY_TYPE_OPTIONS, getPolicyNameByType } from '@/api/hotel';
+import type {
+  HotelFormData,
+  FrontendRoomDetail,
+  FrontendPolicyDetail,
+  PolicyType
+} from '@/api/hotel';
 
 const { Title } = Typography;
-
-interface RoomDetail {
-  id: string;
-  roomName: string;
-  bedCount: string;
-  roomSize: string;
-  maxOccupancy: string;
-  floor: string;
-}
-
-interface HotelFormData {
-  name: string;
-  address: string;
-  phone: string;
-  starRating: number;
-  description: string;
-  images: string[];
-  roomTypes: string[];
-  facilities: string[];
-  status: string;
-  facilityPolicies: {
-    checkInTime: string;
-    checkOutTime: string;
-    petPolicy: string;
-    cancellationPolicy: string;
-    otherPolicies: string;
-  };
-  roomDetails: RoomDetail[];
-}
 
 /**
  * 酒店详情编辑页面（占位组件）
@@ -81,62 +70,57 @@ const HotelDetail: React.FC = () => {
     roomTypes: [],
     facilities: [],
     status: 'pending',
-    facilityPolicies: {
-      checkInTime: '',
-      checkOutTime: '',
-      petPolicy: '',
-      cancellationPolicy: '',
-      otherPolicies: ''
-    },
+    policies: [],
     roomDetails: []
   });
 
   // 房间详情状态
-  const [roomDetails, setRoomDetails] = useState<RoomDetail[]>([]);
+  const [roomDetails, setRoomDetails] = useState<FrontendRoomDetail[]>([]);
+
+  // 政策详情状态
+  const [policyDetails, setPolicyDetails] = useState<FrontendPolicyDetail[]>([]);
 
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // 模拟数据获取
+  // 状态显示配置
+  const statusConfig: Record<string, { text: string; color: string }> = {
+    draft: { text: '草稿', color: 'default' },
+    pending: { text: '审核中', color: 'processing' },
+    approved: { text: '已通过', color: 'success' },
+    rejected: { text: '已拒绝', color: 'error' },
+    offline: { text: '已下线', color: 'default' },
+    pending_update: { text: '二次审核中', color: 'processing' }
+  };
+
+  // 是否可以提交首次审核（草稿或已拒绝状态）
+  const canSubmitForReview = hotelData.status === 'draft' || hotelData.status === 'rejected';
+
+  // 是否可以提交二次审核（已通过状态）
+  const canSubmitSecondaryReview = hotelData.status === 'approved';
+
+  // 从API获取酒店数据
   useEffect(() => {
     const fetchHotelData = async () => {
+      if (!hotelId) return;
+
       setLoading(true);
       try {
-        // 这里后续会替换为实际的API调用
-        // 现在使用模拟数据
-        const mockData = {
-          name: '上海中心大酒店',
-          address: '上海市浦东新区世纪大道100号',
-          phone: '021-12345678',
-          starRating: 5,
-          description:
-            '这是一家五星级豪华酒店，位于上海的中心地带，交通便利，设施完善。酒店拥有多种房型，配备先进的设施和服务，为客人提供舒适的住宿体验。',
-          images: [],
-          roomTypes: [],
-          facilities: ['wifi', 'parking', 'restaurant'],
-          status: 'approved',
-          facilityPolicies: {
-            checkInTime: '15:00',
-            checkOutTime: '12:00',
-            petPolicy: '不允许携带宠物',
-            cancellationPolicy: '入住前24小时可免费取消',
-            otherPolicies: ''
-          }
-        };
-
-        setTimeout(() => {
-          setHotelData({ ...mockData, roomDetails: [] } as HotelFormData);
-          form.setFieldsValue(mockData);
-          setLoading(false);
-        }, 1000);
+        const formData = await hotelApi.getFormData(hotelId);
+        setHotelData(formData);
+        setRoomDetails(formData.roomDetails);
+        setPolicyDetails(formData.policies);
+        form.setFieldsValue(formData);
       } catch (error) {
         console.error('获取酒店数据失败:', error);
+        message.error('获取酒店数据失败');
+      } finally {
         setLoading(false);
       }
     };
 
-    if (hotelId) {
-      fetchHotelData();
-    }
+    fetchHotelData();
   }, [hotelId, form]);
 
   // 返回列表页
@@ -144,15 +128,66 @@ const HotelDetail: React.FC = () => {
     navigate('/hotel-edit');
   };
 
+  // 提交首次审核
+  const handleSubmitForReview = () => {
+    if (!hotelId) return;
+
+    Modal.confirm({
+      title: '提交审核',
+      content: '确定要提交该酒店进行审核吗？提交后将进入审核流程。',
+      okText: '确认提交',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          setSubmitting(true);
+          await hotelApi.updateStatus(hotelId, 'pending');
+          message.success('提交审核成功');
+          setHotelData((prev) => ({ ...prev, status: 'pending' }));
+        } catch (error) {
+          console.error('提交审核失败:', error);
+          message.error('提交审核失败');
+        } finally {
+          setSubmitting(false);
+        }
+      }
+    });
+  };
+
+  // 提交二次审核（已发布酒店修改后重新提审）
+  const handleSubmitSecondaryReview = () => {
+    if (!hotelId) return;
+
+    Modal.confirm({
+      title: '提交二次审核',
+      content: '您正在提交已发布酒店的修改内容进行审核。审核通过前，现网信息不会改变。确定提交吗？',
+      okText: '确认提交',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          setSubmitting(true);
+          await hotelApi.submitSecondaryReview(hotelId);
+          message.success('二次审核提交成功');
+          setHotelData((prev) => ({ ...prev, status: 'pending_update' }));
+        } catch (error) {
+          console.error('提交二次审核失败:', error);
+          message.error('提交二次审核失败');
+        } finally {
+          setSubmitting(false);
+        }
+      }
+    });
+  };
+
   // 添加新房间
   const handleAddRoom = () => {
-    const newRoom: RoomDetail = {
-      id: Date.now().toString(),
+    const newRoom: FrontendRoomDetail = {
+      id: `new_${Date.now()}`,
       roomName: '',
       bedCount: '',
       roomSize: '',
       maxOccupancy: '',
-      floor: ''
+      floor: '',
+      basePrice: ''
     };
     setRoomDetails([...roomDetails, newRoom]);
   };
@@ -163,34 +198,150 @@ const HotelDetail: React.FC = () => {
   };
 
   // 更新房间信息
-  const handleRoomChange = (roomId: string, field: keyof RoomDetail, value: string) => {
+  const handleRoomChange = (roomId: string, field: keyof FrontendRoomDetail, value: string) => {
     setRoomDetails(
       roomDetails.map((room) => (room.id === roomId ? { ...room, [field]: value } : room))
     );
   };
 
-  // 提交酒店房型信息（占位方法，后续对接后端使用）
-  const submitHotelRoomTypes = () => {
-    // TODO: 实现房型信息提交逻辑
-    // 这个方法将在后续对接后端API时实现
-    console.log('准备提交房型信息:', {
-      roomTypes: hotelData.roomTypes,
-      roomDetails: roomDetails
-    });
+  // 保存酒店基本信息
+  const handleSaveBasicInfo = async () => {
+    if (!hotelId) return;
 
-    // 这里可以添加表单验证逻辑
-    if (!hotelData.roomTypes || hotelData.roomTypes.length === 0) {
-      console.warn('房型信息为空');
-      return;
+    try {
+      const values = await form.validateFields();
+      setSaving(true);
+
+      const formData: HotelFormData = {
+        ...hotelData,
+        ...values,
+        roomDetails,
+        policies: policyDetails
+      };
+
+      await hotelApi.saveFormData(hotelId, formData);
+      setHotelData(formData);
+      message.success('保存成功');
+    } catch (error) {
+      console.error('保存失败:', error);
+      message.error('保存失败');
+    } finally {
+      setSaving(false);
     }
+  };
+
+  // 保存房型信息
+  const submitHotelRoomTypes = async () => {
+    if (!hotelId) return;
 
     if (roomDetails.length === 0) {
-      console.warn('房间详情为空');
+      message.warning('请至少添加一个房间');
       return;
     }
 
-    // 模拟提交成功
-    console.log('房型信息验证通过，准备提交到后端...');
+    const emptyRooms = roomDetails.filter((room) => !room.roomName.trim());
+    if (emptyRooms.length > 0) {
+      message.warning('请填写所有房间的名称');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await hotelApi.updateRooms(
+        hotelId,
+        roomDetails.map((room) => ({
+          roomId: room.id.startsWith('new_') ? undefined : room.id,
+          roomName: room.roomName,
+          bedCount: room.bedCount,
+          roomSize: room.roomSize,
+          maxOccupancy: room.maxOccupancy,
+          floor: room.floor,
+          basePrice: room.basePrice ? Math.round(parseFloat(room.basePrice) * 100) : undefined
+        }))
+      );
+      message.success('房型信息保存成功');
+
+      const updatedData = await hotelApi.getFormData(hotelId);
+      setRoomDetails(updatedData.roomDetails);
+    } catch (error) {
+      console.error('保存房型失败:', error);
+      message.error('保存房型失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 添加新政策
+  const handleAddPolicy = () => {
+    const newPolicy: FrontendPolicyDetail = {
+      id: `new_${Date.now()}`,
+      policyType: 'checkIn',
+      policyName: '入住时间',
+      policyContent: ''
+    };
+    setPolicyDetails([...policyDetails, newPolicy]);
+  };
+
+  // 删除政策
+  const handleRemovePolicy = (policyId: string) => {
+    setPolicyDetails(policyDetails.filter((policy) => policy.id !== policyId));
+  };
+
+  // 更新政策信息
+  const handlePolicyChange = (
+    policyId: string,
+    field: keyof FrontendPolicyDetail,
+    value: string
+  ) => {
+    setPolicyDetails(
+      policyDetails.map((policy) => {
+        if (policy.id !== policyId) return policy;
+
+        if (field === 'policyType') {
+          const newType = value as PolicyType;
+          return {
+            ...policy,
+            policyType: newType,
+            policyName: newType === 'other' ? '' : getPolicyNameByType(newType)
+          };
+        }
+
+        return { ...policy, [field]: value };
+      })
+    );
+  };
+
+  // 保存政策信息
+  const submitHotelPolicies = async () => {
+    if (!hotelId) return;
+
+    const emptyPolicies = policyDetails.filter((p) => !p.policyName.trim());
+    if (emptyPolicies.length > 0) {
+      message.warning('请填写所有政策的名称');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await hotelApi.updatePolicies(
+        hotelId,
+        policyDetails.map((policy) => ({
+          policyId: policy.id.startsWith('new_') ? undefined : policy.id,
+          policyType: policy.policyType,
+          policyName: policy.policyName,
+          policyContent: policy.policyContent
+        }))
+      );
+      message.success('政策信息保存成功');
+
+      const updatedData = await hotelApi.getFormData(hotelId);
+      setPolicyDetails(updatedData.policies);
+    } catch (error) {
+      console.error('保存政策失败:', error);
+      message.error('保存政策失败');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -211,16 +362,52 @@ const HotelDetail: React.FC = () => {
             <HomeOutlined style={{ marginRight: 8 }} />
             {isViewMode ? '酒店详情' : '编辑酒店信息'}
           </Title>
+          {hotelData.status && (
+            <Tag color={statusConfig[hotelData.status]?.color || 'default'}>
+              {statusConfig[hotelData.status]?.text || hotelData.status}
+            </Tag>
+          )}
         </Space>
-        {isViewMode && (
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={() => navigate(`/hotel-detail/${hotelId}`)}
-          >
-            编辑
-          </Button>
-        )}
+        <Space>
+          {/* 首次提交审核（草稿/已拒绝状态） */}
+          {!isViewMode && canSubmitForReview && (
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleSubmitForReview}
+              loading={submitting}
+            >
+              提交审核
+            </Button>
+          )}
+          {/* 二次提交审核（已通过状态） */}
+          {!isViewMode && canSubmitSecondaryReview && (
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handleSubmitSecondaryReview}
+              loading={submitting}
+            >
+              提交修改审核
+            </Button>
+          )}
+          {/* 审核中状态 */}
+          {!isViewMode &&
+            (hotelData.status === 'pending' || hotelData.status === 'pending_update') && (
+              <Button disabled>
+                {hotelData.status === 'pending_update' ? '修改审核中' : '审核中'}
+              </Button>
+            )}
+          {isViewMode && (
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`/hotel-detail/${hotelId}`)}
+            >
+              编辑
+            </Button>
+          )}
+        </Space>
       </div>
 
       {/* 基础信息卡片 */}
@@ -233,11 +420,7 @@ const HotelDetail: React.FC = () => {
                 name="name"
                 rules={[{ required: true, message: '请输入酒店名称' }]}
               >
-                <Input
-                  placeholder="请输入酒店名称"
-                  disabled={!isViewMode} // 只在编辑模式下可编辑
-                  readOnly={isViewMode} // 查看模式下只读
-                />
+                <Input placeholder="请输入酒店名称" disabled={isViewMode} />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -251,7 +434,7 @@ const HotelDetail: React.FC = () => {
                   max={5}
                   placeholder="请选择星级（1-5星）"
                   style={{ width: '100%' }}
-                  disabled={!isViewMode} // 只在编辑模式下可编辑
+                  disabled={isViewMode}
                 />
               </Form.Item>
             </Col>
@@ -264,18 +447,12 @@ const HotelDetail: React.FC = () => {
                 name="phone"
                 rules={[{ required: true, message: '请输入联系电话' }]}
               >
-                <Input
-                  placeholder="请输入联系电话"
-                  disabled={!isViewMode} // 只在编辑模式下可编辑
-                />
+                <Input placeholder="请输入联系电话" disabled={isViewMode} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item label="酒店状态" name="status">
-                <Input
-                  placeholder="酒店状态"
-                  disabled // 状态字段始终只读
-                />
+                <Input placeholder="酒店状态" disabled />
               </Form.Item>
             </Col>
           </Row>
@@ -285,11 +462,7 @@ const HotelDetail: React.FC = () => {
             name="address"
             rules={[{ required: true, message: '请输入酒店地址' }]}
           >
-            <Input.TextArea
-              placeholder="请输入详细地址"
-              rows={2}
-              disabled={!isViewMode} // 只在编辑模式下可编辑
-            />
+            <Input.TextArea placeholder="请输入详细地址" rows={2} disabled={isViewMode} />
           </Form.Item>
 
           <Form.Item label="酒店描述" name="description">
@@ -298,7 +471,7 @@ const HotelDetail: React.FC = () => {
               rows={4}
               maxLength={500}
               showCount
-              disabled={!isViewMode} // 只在编辑模式下可编辑
+              disabled={isViewMode}
             />
           </Form.Item>
         </Form>
@@ -308,7 +481,7 @@ const HotelDetail: React.FC = () => {
           {!isViewMode ? (
             <Space>
               <Button onClick={handleBack}>取消</Button>
-              <Button type="primary" onClick={() => form.submit()}>
+              <Button type="primary" loading={saving} onClick={handleSaveBasicInfo}>
                 保存
               </Button>
             </Space>
@@ -325,60 +498,103 @@ const HotelDetail: React.FC = () => {
       </Card>
 
       {/* 设施政策卡片 */}
-      <Card title="设施政策" loading={loading} style={{ marginBottom: 24 }}>
-        <Form form={form} layout="vertical" initialValues={hotelData} size="large">
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item label="入住时间" name={['facilityPolicies', 'checkInTime']}>
-                <Input placeholder="请输入入住时间" disabled={!isViewMode} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="退房时间" name={['facilityPolicies', 'checkOutTime']}>
-                <Input placeholder="请输入退房时间" disabled={!isViewMode} />
-              </Form.Item>
-            </Col>
-          </Row>
+      <Card
+        title="设施政策"
+        loading={loading}
+        style={{ marginBottom: 24 }}
+        extra={
+          !isViewMode && (
+            <Button type="primary" loading={saving} onClick={submitHotelPolicies}>
+              保存政策
+            </Button>
+          )
+        }
+      >
+        {/* 添加政策按钮 - 只在编辑模式下显示 */}
+        {!isViewMode && (
+          <div style={{ marginBottom: 16 }}>
+            <Button
+              type="dashed"
+              onClick={handleAddPolicy}
+              style={{ width: '100%' }}
+              icon={<PlusOutlined />}
+            >
+              添加政策
+            </Button>
+          </div>
+        )}
 
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item label="宠物政策" name={['facilityPolicies', 'petPolicy']}>
-                <Input placeholder="请输入宠物政策" disabled={!isViewMode} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="取消政策" name={['facilityPolicies', 'cancellationPolicy']}>
-                <Input placeholder="请输入取消政策" disabled={!isViewMode} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item label="其他政策" name={['facilityPolicies', 'otherPolicies']}>
-            <Input.TextArea
-              placeholder="请输入其他政策信息"
-              rows={3}
-              maxLength={300}
-              showCount
-              disabled={!isViewMode}
-            />
-          </Form.Item>
-        </Form>
+        {/* 政策详情卡片列表 */}
+        {policyDetails.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#999', padding: '20px 0' }}>
+            暂无政策，请点击"添加政策"按钮添加
+          </div>
+        ) : (
+          policyDetails.map((policy) => (
+            <Card
+              key={policy.id}
+              size="small"
+              style={{ marginBottom: 12 }}
+              title="政策详情"
+              extra={
+                !isViewMode && (
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleRemovePolicy(policy.id)}
+                  >
+                    删除
+                  </Button>
+                )
+              }
+            >
+              <Row gutter={16}>
+                <Col span={8}>
+                  <div style={{ marginBottom: 8, color: '#666' }}>政策类型</div>
+                  <Select
+                    style={{ width: '100%' }}
+                    value={policy.policyType}
+                    disabled={isViewMode}
+                    onChange={(value) => handlePolicyChange(policy.id, 'policyType', value)}
+                    options={POLICY_TYPE_OPTIONS}
+                  />
+                </Col>
+                <Col span={16}>
+                  <div style={{ marginBottom: 8, color: '#666' }}>政策名称</div>
+                  {policy.policyType === 'other' ? (
+                    <Input
+                      placeholder="请输入自定义政策名称"
+                      value={policy.policyName}
+                      disabled={isViewMode}
+                      onChange={(e) => handlePolicyChange(policy.id, 'policyName', e.target.value)}
+                    />
+                  ) : (
+                    <Input value={policy.policyName} disabled />
+                  )}
+                </Col>
+              </Row>
+              <Row gutter={16} style={{ marginTop: 12 }}>
+                <Col span={24}>
+                  <div style={{ marginBottom: 8, color: '#666' }}>政策内容</div>
+                  <Input.TextArea
+                    placeholder="请输入政策内容"
+                    value={policy.policyContent}
+                    disabled={isViewMode}
+                    rows={2}
+                    maxLength={500}
+                    showCount
+                    onChange={(e) => handlePolicyChange(policy.id, 'policyContent', e.target.value)}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          ))
+        )}
       </Card>
 
       {/* 酒店房型信息卡片 */}
       <Card title="酒店房型" loading={loading} style={{ marginBottom: 24 }}>
-        <Form form={form} layout="vertical" initialValues={hotelData} size="large">
-          <Form.Item label="房型信息" name="roomTypes">
-            <Input.TextArea
-              placeholder="请输入酒店房型信息，如：标准间、豪华套房、商务间等"
-              rows={3}
-              maxLength={500}
-              showCount
-              disabled={!isViewMode}
-            />
-          </Form.Item>
-        </Form>
-
         {/* 添加房间按钮 - 只在编辑模式下显示 */}
         {!isViewMode && (
           <div style={{ marginBottom: 16 }}>
@@ -473,6 +689,21 @@ const HotelDetail: React.FC = () => {
                   />
                 </div>
               </Col>
+              <Col span={12}>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                    房间价格（元/晚）
+                  </label>
+                  <Input
+                    placeholder="请输入房间价格"
+                    value={room.basePrice}
+                    onChange={(e) => handleRoomChange(room.id, 'basePrice', e.target.value)}
+                    disabled={isViewMode}
+                    type="number"
+                    min={0}
+                  />
+                </div>
+              </Col>
             </Row>
           </Card>
         ))}
@@ -480,7 +711,7 @@ const HotelDetail: React.FC = () => {
         {/* 房型保存按钮 - 只在编辑模式下显示 */}
         {!isViewMode && (
           <div style={{ textAlign: 'right', marginTop: 16 }}>
-            <Button type="primary" onClick={submitHotelRoomTypes}>
+            <Button type="primary" loading={saving} onClick={submitHotelRoomTypes}>
               保存房型信息
             </Button>
           </div>

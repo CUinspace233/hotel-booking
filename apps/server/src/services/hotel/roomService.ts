@@ -8,7 +8,8 @@ import type {
   CreateHotelRoomParams,
   UpdateHotelRoomParams,
   RoomFacilityItem,
-  RoomImageItem
+  RoomImageItem,
+  BatchUpdateRoomItem
 } from '../../types/hotel';
 
 // 服务层错误类
@@ -66,15 +67,15 @@ class HotelRoomService {
 
     const room = await hotelRoomRepository.create({
       roomId,
-      name: params.name,
-      roomType: params.roomType,
+      roomName: params.roomName,
+      roomType: params.roomType || 'standard',
       bedType: params.bedType,
       bedCount: params.bedCount,
       bedSize: params.bedSize,
-      area: params.area,
-      floorRange: params.floorRange,
+      roomSize: params.roomSize,
+      floor: params.floor,
       windowType: params.windowType,
-      maxGuests: params.maxGuests,
+      maxOccupancy: params.maxOccupancy,
       basePrice: params.basePrice,
       breakfastType: params.breakfastType,
       breakfastCount: params.breakfastCount,
@@ -101,7 +102,26 @@ class HotelRoomService {
       throw new ServiceError('房型不存在', 404);
     }
 
-    const room = await hotelRoomRepository.update(roomId, params);
+    const room = await hotelRoomRepository.update(roomId, {
+      roomName: params.roomName,
+      roomType: params.roomType,
+      bedType: params.bedType,
+      bedCount: params.bedCount,
+      bedSize: params.bedSize,
+      roomSize: params.roomSize,
+      floor: params.floor,
+      windowType: params.windowType,
+      maxOccupancy: params.maxOccupancy,
+      basePrice: params.basePrice,
+      breakfastType: params.breakfastType,
+      breakfastCount: params.breakfastCount,
+      totalCount: params.totalCount,
+      availableCount: params.availableCount,
+      description: params.description,
+      coverImage: params.coverImage,
+      sortOrder: params.sortOrder,
+      status: params.status
+    });
     return room;
   }
 
@@ -188,6 +208,88 @@ class HotelRoomService {
    */
   async countByHotelId(hotelId: string) {
     return hotelRoomRepository.countByHotelId(hotelId);
+  }
+
+  /**
+   * 批量更新房间（智能处理新增、更新、删除）
+   * - 有 roomId 且在数据库中存在：更新
+   * - 无 roomId 或以 'new_' 开头：新增
+   * - 数据库中存在但不在提交列表中：删除（软删除）
+   * @param version 版本类型：draft / published，默认 draft
+   */
+  async batchUpdate(hotelId: string, rooms: BatchUpdateRoomItem[], version: string = 'draft') {
+    // 检查酒店是否存在
+    const project = await hotelProjectRepository.findByHotelId(hotelId);
+    if (!project) {
+      throw new ServiceError('酒店不存在', 404);
+    }
+
+    // 获取当前数据库中的房间（指定版本）
+    const existingRooms = await hotelRoomRepository.findByHotelId(hotelId, undefined, version);
+    const existingRoomIds = new Set(existingRooms.map((r) => r.roomId));
+
+    // 分类处理
+    const toCreate: BatchUpdateRoomItem[] = [];
+    const toUpdate: { roomId: string; data: BatchUpdateRoomItem }[] = [];
+    const submittedRoomIds = new Set<string>();
+
+    for (const room of rooms) {
+      // 新增：无 roomId 或以 'new_' 开头
+      if (!room.roomId || room.roomId.startsWith('new_')) {
+        toCreate.push(room);
+      } else if (existingRoomIds.has(room.roomId)) {
+        // 更新：有 roomId 且存在于数据库
+        toUpdate.push({ roomId: room.roomId, data: room });
+        submittedRoomIds.add(room.roomId);
+      } else {
+        // roomId 不存在于数据库，当作新增处理
+        toCreate.push(room);
+      }
+    }
+
+    // 找出需要删除的房间（数据库中有，但提交列表中没有）
+    const toDelete = existingRooms
+      .filter((r) => !submittedRoomIds.has(r.roomId))
+      .map((r) => r.roomId);
+
+    // 执行新增
+    for (const room of toCreate) {
+      const roomId = generateRoomId();
+      await hotelRoomRepository.create({
+        roomId,
+        roomName: room.roomName,
+        roomType: 'standard',
+        version,
+        bedCount: room.bedCount || null,
+        roomSize: room.roomSize || null,
+        maxOccupancy: room.maxOccupancy || null,
+        floor: room.floor || null,
+        basePrice: room.basePrice ?? null,
+        project: {
+          connect: { hotelId }
+        }
+      });
+    }
+
+    // 执行更新
+    for (const { roomId, data } of toUpdate) {
+      await hotelRoomRepository.update(roomId, {
+        roomName: data.roomName,
+        bedCount: data.bedCount || null,
+        roomSize: data.roomSize || null,
+        maxOccupancy: data.maxOccupancy || null,
+        floor: data.floor || null,
+        basePrice: data.basePrice ?? null
+      });
+    }
+
+    // 执行软删除
+    for (const roomId of toDelete) {
+      await hotelRoomRepository.softDelete(roomId);
+    }
+
+    // 返回更新后的房间列表
+    return hotelRoomRepository.findByHotelId(hotelId, undefined, version);
   }
 }
 

@@ -3,3 +3,4 @@ export { hotelProjectRepository } from './projectRepository';
 export { hotelDetailRepository } from './detailRepository';
 export { hotelRoomRepository } from './roomRepository';
 export { facilityRepository } from './facilityRepository';
+export { hotelPolicyRepository } from './policyRepository';

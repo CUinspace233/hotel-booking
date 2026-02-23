@@ -16,6 +16,10 @@ router.use(authMiddleware);
  * PUT    /api/hotel/projects/:hotelId - 更新项目
  * PUT    /api/hotel/projects/:hotelId/status - 更新项目状态
  * DELETE /api/hotel/projects/:hotelId - 删除项目
+ * POST   /api/hotel/projects/:hotelId/publish - 发布草稿
+ * POST   /api/hotel/projects/:hotelId/sync-draft - 同步已发布数据到草稿
+ * PUT    /api/hotel/projects/:hotelId/offline - 下线酒店（管理员）
+ * PUT    /api/hotel/projects/:hotelId/online - 恢复上线（管理员）
  */
 
 // 获取项目列表
@@ -32,6 +36,18 @@ router.put('/:hotelId', HotelProjectController.update);
 
 // 更新项目状态
 router.put('/:hotelId/status', HotelProjectController.updateStatus);
+
+// 发布草稿（将 draft 同步为 published）
+router.post('/:hotelId/publish', HotelProjectController.publishDraft);
+
+// 同步已发布数据到草稿（用于开始编辑已发布酒店）
+router.post('/:hotelId/sync-draft', HotelProjectController.syncDraft);
+
+// 下线酒店（管理员）
+router.put('/:hotelId/offline', HotelProjectController.setOffline);
+
+// 恢复上线（管理员）
+router.put('/:hotelId/online', HotelProjectController.setOnline);
 
 // 删除项目
 router.delete('/:hotelId', HotelProjectController.delete);
