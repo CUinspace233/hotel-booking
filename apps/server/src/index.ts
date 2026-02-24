@@ -2,6 +2,7 @@ import express, { Request, Response, Express } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import path from 'path';
 import routes from './routes/index';
 
 // 加载环境变量
@@ -30,6 +31,9 @@ app.use(express.json());
 
 // URL 编码解析
 app.use(express.urlencoded({ extended: true }));
+
+// 静态文件服务（图片上传目录）
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ==================== 路由配置 ====================
 
