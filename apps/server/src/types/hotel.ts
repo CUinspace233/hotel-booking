@@ -182,6 +182,7 @@ export interface BatchUpdateRoomItem {
   maxOccupancy?: string;
   floor?: string;
   basePrice?: number;
+  totalCount?: number; // 库存数量（房间总数）
 }
 
 // 批量更新房间请求

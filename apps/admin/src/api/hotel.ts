@@ -71,7 +71,8 @@ export function transformToFormData(fullInfo: any): HotelFormData {
       roomSize: room.roomSize || '',
       maxOccupancy: room.maxOccupancy || '',
       floor: room.floor || '',
-      basePrice: room.basePrice != null ? String(room.basePrice / 100) : ''
+      basePrice: room.basePrice != null ? String(room.basePrice / 100) : '',
+      totalCount: room.totalCount != null ? String(room.totalCount) : ''
     }))
   };
 }
@@ -102,7 +103,8 @@ export function transformFromFormData(formData: HotelFormData): {
       roomSize: room.roomSize,
       maxOccupancy: room.maxOccupancy,
       floor: room.floor,
-      basePrice: room.basePrice ? Math.round(parseFloat(room.basePrice) * 100) : undefined
+      basePrice: room.basePrice ? Math.round(parseFloat(room.basePrice) * 100) : undefined,
+      totalCount: room.totalCount ? parseInt(room.totalCount, 10) : undefined
     })),
     policies: formData.policies.map((policy) => ({
       policyId: policy.id.startsWith('new_') ? undefined : policy.id,

@@ -255,6 +255,7 @@ class HotelRoomService {
     // 执行新增
     for (const room of toCreate) {
       const roomId = generateRoomId();
+      const totalCount = room.totalCount ?? 0;
       await hotelRoomRepository.create({
         roomId,
         roomName: room.roomName,
@@ -265,6 +266,8 @@ class HotelRoomService {
         maxOccupancy: room.maxOccupancy || null,
         floor: room.floor || null,
         basePrice: room.basePrice ?? null,
+        totalCount,
+        availableCount: totalCount,
         project: {
           connect: { hotelId }
         }
@@ -273,14 +276,18 @@ class HotelRoomService {
 
     // 执行更新
     for (const { roomId, data } of toUpdate) {
-      await hotelRoomRepository.update(roomId, {
+      const updateData: Parameters<typeof hotelRoomRepository.update>[1] = {
         roomName: data.roomName,
         bedCount: data.bedCount || null,
         roomSize: data.roomSize || null,
         maxOccupancy: data.maxOccupancy || null,
         floor: data.floor || null,
         basePrice: data.basePrice ?? null
-      });
+      };
+      if (data.totalCount !== undefined) {
+        updateData.totalCount = data.totalCount;
+      }
+      await hotelRoomRepository.update(roomId, updateData);
     }
 
     // 执行软删除
