@@ -19,9 +19,10 @@ export class ServiceError extends Error {
 class HotelDetailService {
   /**
    * 获取酒店详情（含设施和图片）
+   * @param version 版本类型：draft / published
    */
-  async getByHotelId(hotelId: string) {
-    const detail = await hotelDetailRepository.findByHotelIdWithRelations(hotelId);
+  async getByHotelId(hotelId: string, version: string = 'draft') {
+    const detail = await hotelDetailRepository.findByHotelIdWithRelations(hotelId, version);
     if (!detail) {
       throw new ServiceError('酒店详情不存在', 404);
     }
@@ -30,24 +31,31 @@ class HotelDetailService {
 
   /**
    * 更新酒店详情
+   * @param version 版本类型：draft / published
    */
-  async update(hotelId: string, params: UpdateHotelDetailParams) {
+  async update(hotelId: string, params: UpdateHotelDetailParams, version: string = 'draft') {
     // 使用 upsert，如果不存在则创建
-    const detail = await hotelDetailRepository.upsert(hotelId, params as Record<string, unknown>);
+    const detail = await hotelDetailRepository.upsert(
+      hotelId,
+      params as Record<string, unknown>,
+      version
+    );
     return detail;
   }
 
   /**
    * 添加酒店设施（批量覆盖）
+   * 若草稿详情不存在则先创建，再写入设施
    */
   async setFacilities(hotelId: string, facilities: HotelFacilityItem[]) {
-    // 检查详情是否存在
-    const detail = await hotelDetailRepository.findByHotelId(hotelId);
+    const version = 'draft';
+    let detail = await hotelDetailRepository.findByHotelId(hotelId, version);
     if (!detail) {
-      throw new ServiceError('酒店详情不存在，请先创建酒店', 404);
+      // 详情不存在时先 upsert 空详情，避免因历史数据或新建流程未创建 detail 导致保存失败
+      await hotelDetailRepository.upsert(hotelId, {}, version);
     }
 
-    const count = await facilityRepository.addHotelFacilities(hotelId, facilities);
+    const count = await facilityRepository.addHotelFacilities(hotelId, facilities, version);
     return { count };
   }
 

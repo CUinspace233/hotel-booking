@@ -70,9 +70,10 @@ class HotelProjectService {
 
   /**
    * 获取项目（含详情）
+   * @param version 版本类型：draft / published
    */
-  async getWithDetail(hotelId: string) {
-    const project = await hotelProjectRepository.findByHotelIdWithDetail(hotelId);
+  async getWithDetail(hotelId: string, version: string = 'draft') {
+    const project = await hotelProjectRepository.findByHotelIdWithDetail(hotelId, version);
     if (!project) {
       throw new ServiceError('酒店项目不存在', 404);
     }
@@ -81,9 +82,10 @@ class HotelProjectService {
 
   /**
    * 获取完整酒店信息（三层聚合）
+   * @param version 版本类型：draft / published
    */
-  async getFullInfo(hotelId: string) {
-    const project = await hotelProjectRepository.findByHotelIdWithAll(hotelId);
+  async getFullInfo(hotelId: string, version: string = 'draft') {
+    const project = await hotelProjectRepository.findByHotelIdWithAll(hotelId, version);
     if (!project) {
       throw new ServiceError('酒店项目不存在', 404);
     }
@@ -153,6 +155,36 @@ class HotelProjectService {
   }
 
   /**
+   * 撤回审核
+   * - pending 状态撤回后变为 draft
+   * - pending_update 状态撤回后变为 approved
+   */
+  async withdrawReview(hotelId: string) {
+    const existing = await hotelProjectRepository.findByHotelId(hotelId);
+    if (!existing) {
+      throw new ServiceError('酒店项目不存在', 404);
+    }
+
+    const currentStatus = existing.status as HotelStatus;
+
+    // 只有 pending 和 pending_update 状态才能撤回
+    if (currentStatus !== 'pending' && currentStatus !== 'pending_update') {
+      throw new ServiceError('当前状态不可撤回审核', 400);
+    }
+
+    // 根据当前状态决定撤回后的目标状态
+    const newStatus: HotelStatus = currentStatus === 'pending_update' ? 'approved' : 'draft';
+
+    const updateData: Prisma.HotelProjectUpdateInput = {
+      status: newStatus,
+      submitTime: null // 清除提审时间
+    };
+
+    const project = await hotelProjectRepository.update(hotelId, updateData);
+    return project;
+  }
+
+  /**
    * 删除项目（软删除）
    */
   async delete(hotelId: string) {
@@ -202,10 +234,11 @@ class HotelProjectService {
   private validateStatusTransition(currentStatus: HotelStatus, newStatus: HotelStatus): void {
     const allowedTransitions: Record<HotelStatus, HotelStatus[]> = {
       draft: ['pending'], // 草稿 -> 提审
-      pending: ['approved', 'rejected'], // 待审核 -> 通过/拒绝
-      approved: ['offline'], // 已通过 -> 下线
+      pending: ['approved', 'rejected', 'draft'], // 待审核 -> 通过/拒绝/撤回
+      approved: ['offline', 'pending_update'], // 已通过 -> 下线/二次提审
       rejected: ['pending', 'draft'], // 已拒绝 -> 重新提审/回到草稿
-      offline: ['pending'] // 已下线 -> 重新提审
+      offline: ['approved', 'pending'], // 已下线 -> 恢复上线/重新提审
+      pending_update: ['approved', 'rejected'] // 二次提审中 -> 通过/拒绝（撤回由专门方法处理）
     };
 
     const allowed = allowedTransitions[currentStatus] || [];
@@ -226,7 +259,8 @@ class HotelProjectService {
       pending: '待审核',
       approved: '已通过',
       rejected: '已拒绝',
-      offline: '已下线'
+      offline: '已下线',
+      pending_update: '二次提审中'
     };
     return labels[status] || status;
   }

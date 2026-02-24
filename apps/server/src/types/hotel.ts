@@ -1,7 +1,17 @@
 // ===================== 酒店相关 TypeScript 类型定义 =====================
 
 // 酒店项目状态枚举
-export type HotelStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'offline';
+// pending_update: 已发布的酒店二次提审中
+export type HotelStatus =
+  | 'draft'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'offline'
+  | 'pending_update';
+
+// 版本类型
+export type VersionType = 'draft' | 'published';
 
 // 酒店类型
 export type HotelType = 'standard' | 'boutique' | 'resort' | 'business' | 'apartment' | 'hostel';
@@ -56,6 +66,7 @@ export interface HotelProjectResponse {
   creator: string;
   remark: string | null;
   submitTime: Date | null;
+  hasUnpublishedChanges: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,6 +110,7 @@ export interface HotelFacilityItem {
   facilityCode: string;
   facilityName: string;
   facilityCategory?: string;
+  description?: string;
   isFree?: boolean;
 }
 
@@ -111,19 +123,19 @@ export interface HotelImageItem {
 
 // ===================== 第三层：房型信息 =====================
 
-// 创建房型参数
+// 创建房型参数（与 Prisma Schema 字段统一）
 export interface CreateHotelRoomParams {
   hotelId: string;
-  name: string;
-  roomType: RoomType;
+  roomName: string; // 与前端统一
+  roomType?: string; // 改为可选
   bedType?: BedType;
-  bedCount?: number;
+  bedCount?: string; // String 类型，与前端统一
   bedSize?: string;
-  area?: number;
-  floorRange?: string;
+  roomSize?: string; // 与前端统一（原 area）
+  floor?: string; // 与前端统一（原 floorRange）
   windowType?: WindowType;
-  maxGuests?: number;
-  basePrice: number;
+  maxOccupancy?: string; // String 类型，与前端统一（原 maxGuests）
+  basePrice?: number; // 改为可选
   breakfastType?: BreakfastType;
   breakfastCount?: number;
   totalCount?: number;
@@ -133,17 +145,17 @@ export interface CreateHotelRoomParams {
   sortOrder?: number;
 }
 
-// 更新房型参数
+// 更新房型参数（与 Prisma Schema 字段统一）
 export interface UpdateHotelRoomParams {
-  name?: string;
-  roomType?: RoomType;
+  roomName?: string; // 与前端统一
+  roomType?: string;
   bedType?: BedType;
-  bedCount?: number;
+  bedCount?: string; // String 类型
   bedSize?: string;
-  area?: number;
-  floorRange?: string;
+  roomSize?: string; // 与前端统一
+  floor?: string; // 与前端统一
   windowType?: WindowType;
-  maxGuests?: number;
+  maxOccupancy?: string; // String 类型
   basePrice?: number;
   breakfastType?: BreakfastType;
   breakfastCount?: number;
@@ -161,6 +173,24 @@ export interface HotelRoomListParams {
   status?: string;
 }
 
+// 批量更新房间参数（与前端 UpsertRoomParams 对应）
+export interface BatchUpdateRoomItem {
+  roomId?: string; // 有 roomId 表示更新，无 roomId 表示新增
+  roomName: string;
+  bedCount?: string;
+  roomSize?: string;
+  maxOccupancy?: string;
+  floor?: string;
+  basePrice?: number;
+}
+
+// 批量更新房间请求
+export interface BatchUpdateRoomsParams {
+  hotelId: string;
+  rooms: BatchUpdateRoomItem[];
+  version?: VersionType; // 默认 draft
+}
+
 // 房型设施
 export interface RoomFacilityItem {
   facilityCode: string;
@@ -171,6 +201,61 @@ export interface RoomFacilityItem {
 export interface RoomImageItem {
   imageUrl: string;
   sortOrder?: number;
+}
+
+// ===================== 酒店政策 =====================
+
+// 政策类型枚举
+export type PolicyType = 'checkIn' | 'checkOut' | 'pet' | 'cancel' | 'parking' | 'other';
+
+// 创建政策参数
+export interface CreatePolicyParams {
+  hotelId: string;
+  policyType: PolicyType;
+  policyName: string;
+  policyContent?: string;
+  sortOrder?: number;
+}
+
+// 更新政策参数
+export interface UpdatePolicyParams {
+  policyType?: PolicyType;
+  policyName?: string;
+  policyContent?: string;
+  sortOrder?: number;
+}
+
+// 批量更新政策项
+export interface BatchUpdatePolicyItem {
+  policyId?: string;
+  policyType: PolicyType;
+  policyName: string;
+  policyContent?: string;
+}
+
+// 批量更新政策请求
+export interface BatchUpdatePoliciesParams {
+  hotelId: string;
+  policies: BatchUpdatePolicyItem[];
+  version?: VersionType; // 默认 draft
+}
+
+// ===================== 版本管理 =====================
+
+// 获取指定版本数据的参数
+export interface GetVersionParams {
+  hotelId: string;
+  version: VersionType;
+}
+
+// 发布草稿（将 draft 同步为 published）
+export interface PublishDraftParams {
+  hotelId: string;
+}
+
+// 创建草稿副本（从 published 复制到 draft）
+export interface CreateDraftFromPublishedParams {
+  hotelId: string;
 }
 
 // ===================== 分页响应 =====================

@@ -11,6 +11,7 @@ router.use(authMiddleware);
  * 酒店房型路由
  *
  * GET    /api/hotel/rooms              - 获取房型列表 (需要 ?hotelId=xxx)
+ * PUT    /api/hotel/rooms/batch        - 批量更新房间（新增/更新/删除）
  * GET    /api/hotel/rooms/:roomId      - 获取单个房型
  * POST   /api/hotel/rooms              - 创建房型
  * PUT    /api/hotel/rooms/:roomId      - 更新房型
@@ -24,6 +25,9 @@ router.use(authMiddleware);
 
 // 获取房型列表（需要 query 参数 hotelId）
 router.get('/', HotelRoomController.list);
+
+// 批量更新房间（必须在 /:roomId 之前定义，否则 'batch' 会被当作 roomId）
+router.put('/batch', HotelRoomController.batchUpdate);
 
 // 获取单个房型
 router.get('/:roomId', HotelRoomController.getOne);

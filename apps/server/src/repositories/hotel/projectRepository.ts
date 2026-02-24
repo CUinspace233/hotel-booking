@@ -25,32 +25,40 @@ class HotelProjectRepository {
   }
 
   /**
-   * 查找项目（含详情）
+   * 查找项目（含指定版本的详情）
    */
-  async findByHotelIdWithDetail(hotelId: string) {
+  async findByHotelIdWithDetail(hotelId: string, version: string = 'draft') {
     return prisma.hotelProject.findUnique({
       where: { hotelId, isDeleted: false },
       include: {
-        detail: true
+        details: {
+          where: { version }
+        }
       }
     });
   }
 
   /**
-   * 查找项目（含详情和房型）
+   * 查找项目（含指定版本的详情、房型、政策）
+   * @param version 版本类型：draft（草稿）或 published（已发布）
    */
-  async findByHotelIdWithAll(hotelId: string) {
+  async findByHotelIdWithAll(hotelId: string, version: string = 'draft') {
     return prisma.hotelProject.findUnique({
       where: { hotelId, isDeleted: false },
       include: {
-        detail: {
+        details: {
+          where: { version },
           include: {
             facilities: true,
-            images: true
+            images: true,
+            policies: {
+              where: { isDeleted: false },
+              orderBy: { sortOrder: 'asc' }
+            }
           }
         },
         rooms: {
-          where: { isDeleted: false },
+          where: { isDeleted: false, version },
           include: {
             facilities: true,
             images: true
@@ -71,7 +79,7 @@ class HotelProjectRepository {
   }
 
   /**
-   * 创建项目并初始化空详情
+   * 创建项目并初始化空详情（草稿版本）
    */
   async createWithDetail(data: {
     hotelId: string;
@@ -89,12 +97,12 @@ class HotelProjectRepository {
         remark: data.remark,
         creatorId: data.creatorId,
         creator: data.creator,
-        detail: {
-          create: {}
+        details: {
+          create: { version: 'draft' }
         }
       },
       include: {
-        detail: true
+        details: true
       }
     });
   }
