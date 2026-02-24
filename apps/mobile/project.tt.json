@@ -1,7 +1,7 @@
 {
   "miniprogramRoot": "./",
   "projectname": "mobile",
-  "description": "hotel booking mobile",
+  "description": "",
   "appid": "touristappid",
   "setting": {
     "urlCheck": true,

@@ -1,7 +1,7 @@
 {
-  "miniprogramRoot": "./dist",
+  "miniprogramRoot": "dist/",
   "projectname": "mobile",
-  "description": "hotel booking mobile",
+  "description": "",
   "appid": "touristappid",
   "setting": {
     "urlCheck": true,
@@ -9,7 +9,17 @@
     "enhance": false,
     "compileHotReLoad": false,
     "postcss": false,
-    "minified": false
+    "preloadBackgroundData": false,
+    "minified": false,
+    "newFeature": true,
+    "autoAudits": false,
+    "coverView": true,
+    "showShadowRootInWxmlPanel": false,
+    "scopeDataCheck": false,
+    "useCompilerModule": false
   },
-  "compileType": "miniprogram"
+  "compileType": "miniprogram",
+  "simulatorType": "wechat",
+  "simulatorPluginLibVersion": {},
+  "condition": {}
 }

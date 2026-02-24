@@ -67,7 +67,7 @@ pnpm run dev
 ```text
 root/
 ├── apps/
-│   ├── mobile/       # C端：用户预订端 (原生小程序 / React + Taro)
+│   ├── mobile/       # C端：用户预订端 (React + Taro + Taro UI)
 │   ├── admin/        # B端：商户管理后台 (React + AntD)
 │   └── server/       # 服务端：API 接口 (Node + Prisma + SQLite)
 │
