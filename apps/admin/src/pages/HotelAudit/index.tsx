@@ -10,10 +10,6 @@ import {
   Input,
   Form,
   Descriptions,
-  Spin,
-  Row,
-  Col,
-  Empty,
   Select,
   Popconfirm
 } from 'antd';
@@ -28,8 +24,8 @@ import {
   PlayCircleOutlined
 } from '@ant-design/icons';
 import { hotelApi } from '@/api/hotel';
-import { POLICY_TYPE_OPTIONS, getCategoryLabel } from '@/constants';
-import type { HotelProject, HotelFormData, HotelStatus } from '@/types';
+import type { HotelProject, HotelStatus } from '@/types';
+import HotelDetailModal from './HotelDetailModal';
 
 // 状态标签映射
 const statusMap: Record<string, { color: string; text: string }> = {
@@ -56,8 +52,6 @@ const HotelAudit: React.FC = () => {
   const [auditVisible, setAuditVisible] = useState(false);
   const [offlineVisible, setOfflineVisible] = useState(false);
   const [currentHotel, setCurrentHotel] = useState<HotelProject | null>(null);
-  const [currentDetail, setCurrentDetail] = useState<HotelFormData | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [filterStatus, setFilterStatus] = useState<HotelStatus | 'pending'>('pending');
   const [form] = Form.useForm();
@@ -125,26 +119,9 @@ const HotelAudit: React.FC = () => {
   }, [loadHotels]);
 
   // 查看详情
-  const handleViewDetail = async (record: HotelProject) => {
+  const handleViewDetail = (record: HotelProject) => {
     setCurrentHotel(record);
     setDetailVisible(true);
-    setDetailLoading(true);
-
-    try {
-      const formData = await hotelApi.getFormData(record.hotelId);
-      setCurrentDetail(formData);
-    } catch (error) {
-      console.error('获取酒店详情失败:', error);
-      message.error('获取酒店详情失败');
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  // 获取政策类型名称
-  const getPolicyTypeName = (type: string) => {
-    const option = POLICY_TYPE_OPTIONS.find((o) => o.value === type);
-    return option ? option.label : type;
   };
 
   // 打开审核弹窗
@@ -398,224 +375,12 @@ const HotelAudit: React.FC = () => {
       </Card>
 
       {/* 详情弹窗 */}
-      <Modal
-        title={
-          <Space>
-            酒店详情
-            {currentHotel && (
-              <Tag color={statusMap[currentHotel.status]?.color || 'default'}>
-                {statusMap[currentHotel.status]?.text || currentHotel.status}
-              </Tag>
-            )}
-          </Space>
-        }
+      <HotelDetailModal
         open={detailVisible}
-        onCancel={() => {
-          setDetailVisible(false);
-          setCurrentDetail(null);
-        }}
-        footer={
-          <Space>
-            <Button onClick={() => setDetailVisible(false)}>关闭</Button>
-            {currentHotel?.status === 'pending' && (
-              <Button
-                type="primary"
-                icon={<AuditOutlined />}
-                onClick={() => {
-                  setDetailVisible(false);
-                  if (currentHotel) handleOpenAudit(currentHotel);
-                }}
-              >
-                去审核
-              </Button>
-            )}
-          </Space>
-        }
-        width={900}
-      >
-        {detailLoading ? (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <Spin tip="加载中..." />
-          </div>
-        ) : currentDetail ? (
-          <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-            {/* 基本信息 */}
-            <h4 style={{ borderBottom: '1px solid #eee', paddingBottom: 8, marginBottom: 16 }}>
-              基本信息
-            </h4>
-            <Descriptions bordered column={2} size="small">
-              <Descriptions.Item label="酒店ID">{currentHotel?.hotelId}</Descriptions.Item>
-              <Descriptions.Item label="酒店名称">
-                {currentDetail.name || '未命名'}
-              </Descriptions.Item>
-              <Descriptions.Item label="星级">
-                {currentDetail.starRating ? `${currentDetail.starRating}星` : '未设置'}
-              </Descriptions.Item>
-              <Descriptions.Item label="联系电话">
-                {currentDetail.phone || '未设置'}
-              </Descriptions.Item>
-              <Descriptions.Item label="地址" span={2}>
-                {currentDetail.address || '未设置'}
-              </Descriptions.Item>
-              <Descriptions.Item label="描述" span={2}>
-                {currentDetail.description || '未设置'}
-              </Descriptions.Item>
-              <Descriptions.Item label="提交人">{currentHotel?.creator}</Descriptions.Item>
-              <Descriptions.Item label="提交时间">
-                {currentHotel?.submitTime
-                  ? new Date(currentHotel.submitTime).toLocaleString()
-                  : currentHotel?.createdAt
-                    ? new Date(currentHotel.createdAt).toLocaleString()
-                    : '-'}
-              </Descriptions.Item>
-            </Descriptions>
-
-            {/* 设施服务 */}
-            <h4
-              style={{
-                borderBottom: '1px solid #eee',
-                paddingBottom: 8,
-                marginTop: 24,
-                marginBottom: 16
-              }}
-            >
-              设施服务
-            </h4>
-            {currentDetail.facilities && currentDetail.facilities.length > 0 ? (
-              (() => {
-                const categories = [...new Set(currentDetail.facilities.map((f) => f.category))];
-                return (
-                  <div>
-                    {categories.map((cat) => (
-                      <div key={cat} style={{ marginBottom: 16 }}>
-                        <div
-                          style={{
-                            fontWeight: 500,
-                            marginBottom: 8,
-                            color: '#333'
-                          }}
-                        >
-                          ▼ {getCategoryLabel(cat)}
-                        </div>
-                        <Space wrap size={[8, 8]}>
-                          {currentDetail.facilities
-                            .filter((f) => f.category === cat)
-                            .map((facility, index) => (
-                              <Tag key={facility.id || index} color="green">
-                                {facility.facilityName}
-                                {facility.description && (
-                                  <span style={{ color: '#666', marginLeft: 4 }}>
-                                    ({facility.description})
-                                  </span>
-                                )}
-                              </Tag>
-                            ))}
-                        </Space>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()
-            ) : (
-              <Empty description="暂无设施信息" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            )}
-
-            {/* 酒店政策 */}
-            <h4
-              style={{
-                borderBottom: '1px solid #eee',
-                paddingBottom: 8,
-                marginTop: 24,
-                marginBottom: 16
-              }}
-            >
-              酒店政策
-            </h4>
-            {currentDetail.policies && currentDetail.policies.length > 0 ? (
-              <Row gutter={[16, 16]}>
-                {currentDetail.policies.map((policy, index) => (
-                  <Col span={12} key={policy.id || index}>
-                    <Card size="small" title={getPolicyTypeName(policy.policyType)}>
-                      <div>
-                        <strong>政策名称：</strong>
-                        {policy.policyName}
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <strong>政策内容：</strong>
-                        {policy.policyContent || '未填写'}
-                      </div>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            ) : (
-              <Empty description="暂无政策信息" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            )}
-
-            {/* 房型信息 */}
-            <h4
-              style={{
-                borderBottom: '1px solid #eee',
-                paddingBottom: 8,
-                marginTop: 24,
-                marginBottom: 16
-              }}
-            >
-              房型信息
-            </h4>
-            {currentDetail.roomDetails && currentDetail.roomDetails.length > 0 ? (
-              <Row gutter={[16, 16]}>
-                {currentDetail.roomDetails.map((room, index) => (
-                  <Col span={12} key={room.id || index}>
-                    <Card size="small" title={room.roomName || '未命名房型'}>
-                      <Row gutter={16}>
-                        <Col span={12}>
-                          <div>
-                            <strong>床铺数量：</strong>
-                            {room.bedCount || '未设置'}
-                          </div>
-                        </Col>
-                        <Col span={12}>
-                          <div>
-                            <strong>房间大小：</strong>
-                            {room.roomSize || '未设置'}
-                          </div>
-                        </Col>
-                      </Row>
-                      <Row gutter={16} style={{ marginTop: 8 }}>
-                        <Col span={12}>
-                          <div>
-                            <strong>入住人数：</strong>
-                            {room.maxOccupancy || '未设置'}
-                          </div>
-                        </Col>
-                        <Col span={12}>
-                          <div>
-                            <strong>所在楼层：</strong>
-                            {room.floor || '未设置'}
-                          </div>
-                        </Col>
-                      </Row>
-                      <Row gutter={16} style={{ marginTop: 8 }}>
-                        <Col span={12}>
-                          <div>
-                            <strong>房间价格：</strong>
-                            {room.basePrice ? `¥${room.basePrice}/晚` : '未设置'}
-                          </div>
-                        </Col>
-                      </Row>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            ) : (
-              <Empty description="暂无房型信息" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            )}
-          </div>
-        ) : (
-          <Empty description="暂无数据" />
-        )}
-      </Modal>
+        hotel={currentHotel}
+        onClose={() => setDetailVisible(false)}
+        onAudit={handleOpenAudit}
+      />
 
       {/* 审核弹窗 */}
       <Modal
