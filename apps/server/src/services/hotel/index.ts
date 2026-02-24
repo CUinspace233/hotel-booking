@@ -4,3 +4,4 @@ export { hotelDetailService } from './detailService';
 export { hotelRoomService } from './roomService';
 export { hotelPolicyService } from './policyService';
 export { hotelVersionService } from './versionService';
+export { publicHotelService } from './publicService';

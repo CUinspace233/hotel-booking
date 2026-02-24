@@ -1,0 +1,142 @@
+.search-page {
+  min-height: 100vh;
+  background: #f5f6fa;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    padding: 24px 24px;
+    padding-top: calc(env(safe-area-inset-top) + 24px);
+    background: #fff;
+    border-bottom: 2px solid #f0f0f0;
+  }
+
+  &__input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #f5f6fa;
+    border-radius: 40px;
+    height: 72px;
+    padding: 0 24px;
+  }
+
+  &__icon {
+    font-size: 28px;
+    color: #999;
+    margin-right: 12px;
+  }
+
+  &__input {
+    flex: 1;
+    font-size: 28px;
+    color: #333;
+    height: 72px;
+    line-height: 72px;
+  }
+
+  &__placeholder {
+    color: #bbb;
+    font-size: 28px;
+  }
+
+  &__clear {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+  }
+
+  &__clear-icon {
+    font-size: 32px;
+    color: #999;
+    line-height: 1;
+  }
+
+  &__cancel {
+    font-size: 28px;
+    color: #0086f6;
+    margin-left: 20px;
+    flex-shrink: 0;
+  }
+
+  &__body {
+    padding: 0 24px;
+  }
+
+  &__loading,
+  &__empty,
+  &__hint {
+    display: flex;
+    justify-content: center;
+    padding: 80px 0;
+    color: #999;
+    font-size: 28px;
+  }
+
+  &__hint-text {
+    color: #bbb;
+    font-size: 26px;
+  }
+
+  &__section-title {
+    padding: 24px 0 16px;
+    font-size: 24px;
+    color: #999;
+  }
+
+  &__results {
+    padding-bottom: 40px;
+  }
+
+  &__item {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  &__item-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  &__item-name {
+    font-size: 30px;
+    color: #222;
+    font-weight: 500;
+    flex: 1;
+    margin-right: 16px;
+  }
+
+  &__item-price {
+    font-size: 30px;
+    color: #ff5a00;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  &__item-info {
+    display: flex;
+    align-items: center;
+    margin-top: 12px;
+  }
+
+  &__item-stars {
+    font-size: 22px;
+    color: #f5a623;
+    margin-right: 16px;
+  }
+
+  &__item-location {
+    font-size: 24px;
+    color: #999;
+  }
+
+  &__highlight {
+    color: #0086f6;
+  }
+}

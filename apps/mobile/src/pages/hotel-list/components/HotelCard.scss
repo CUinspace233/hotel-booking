@@ -1,0 +1,193 @@
+.hotel-card {
+  display: flex;
+  background: #fff;
+  padding: 28px 32px;
+  border-bottom: 2px solid #f0f0f0;
+
+  &__image-wrapper {
+    position: relative;
+    width: 216px;
+    height: 216px;
+    flex-shrink: 0;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  &__image-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #a5b4c8, #7e91a8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__image-placeholder-text {
+    font-size: 64px;
+    color: #fff;
+    font-weight: bold;
+    opacity: 0.6;
+  }
+
+  &__type-badge {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+    padding: 4px 12px;
+    border-radius: 0 12px 0 16px;
+  }
+
+  &__type-badge-text {
+    font-size: 20px;
+    color: #fff;
+  }
+
+  &__info {
+    flex: 1;
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  // 第1行：名称 + 钻石
+  &__title-row {
+    display: flex;
+    align-items: center;
+  }
+
+  &__name {
+    font-size: 32px;
+    font-weight: 700;
+    color: #111;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__diamond {
+    display: flex;
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+
+  &__diamond-icon {
+    font-size: 18px;
+    color: #f5a623;
+  }
+
+  // 第2行：评分
+  &__score-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  &__score-badge {
+    background: #1a73e8;
+    border-radius: 6px;
+    padding: 2px 8px;
+    line-height: 1;
+  }
+
+  &__score-num {
+    font-size: 22px;
+    color: #fff;
+    font-weight: 700;
+  }
+
+  &__score-label {
+    font-size: 22px;
+    color: #ff6b00;
+    font-weight: 600;
+  }
+
+  // 第3行：地址
+  &__location {
+    margin-top: 6px;
+  }
+
+  &__location-text {
+    font-size: 24px;
+    color: #999;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // 第4行：描述
+  &__desc {
+    font-size: 24px;
+    color: #1a73e8;
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // 第5行：设施标签
+  &__facilities {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  &__facility-tag {
+    font-size: 20px;
+    color: #666;
+    padding: 2px 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+
+  // 价格 - 右下角
+  &__price-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    margin-top: auto;
+  }
+
+  &__price {
+    display: flex;
+    align-items: baseline;
+  }
+
+  &__price-symbol {
+    font-size: 28px;
+    color: #ff4d4f;
+    font-weight: 600;
+  }
+
+  &__price-value {
+    font-size: 44px;
+    color: #ff4d4f;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  &__price-unit {
+    font-size: 22px;
+    color: #999;
+    margin-left: 2px;
+  }
+}
