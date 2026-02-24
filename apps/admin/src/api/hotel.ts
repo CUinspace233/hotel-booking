@@ -130,6 +130,15 @@ export interface HotelImage {
   createdAt: string;
 }
 
+// 房型图片
+export interface RoomImage {
+  id: number;
+  roomId: string;
+  imageUrl: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
 // ===================== 政策类型定义 =====================
 
 // 政策类型枚举
@@ -698,6 +707,37 @@ export const hotelApi = {
     return rpc.delete<null>(`/hotel/rooms/${roomId}`);
   },
 
+  // ===================== 房型图片相关 API =====================
+
+  /**
+   * 获取房型图片列表
+   * @param roomId 房型业务ID
+   */
+  getRoomImages(roomId: string): Promise<RoomImage[]> {
+    return rpc.get<RoomImage[]>(`/hotel/rooms/${roomId}/images`);
+  },
+
+  /**
+   * 添加房型图片
+   * @param roomId 房型业务ID
+   * @param images 图片列表
+   */
+  addRoomImages(
+    roomId: string,
+    images: Array<{ imageUrl: string; sortOrder?: number }>
+  ): Promise<{ count: number }> {
+    return rpc.post<{ count: number }>(`/hotel/rooms/${roomId}/images`, { images });
+  },
+
+  /**
+   * 删除房型图片
+   * @param roomId 房型业务ID
+   * @param imageId 图片ID
+   */
+  deleteRoomImage(roomId: string, imageId: number): Promise<null> {
+    return rpc.delete<null>(`/hotel/rooms/${roomId}/images/${imageId}`);
+  },
+
   // ===================== 设施相关 API =====================
 
   /**
@@ -726,23 +766,44 @@ export const hotelApi = {
     return rpc.post<HotelFacility[]>(`/hotel/details/${hotelId}/facilities`, { facilities });
   },
 
-  // ===================== 图片相关 API =====================
+  // ===================== 酒店图片相关 API =====================
 
   /**
    * 获取酒店图片列表
    * @param hotelId 酒店业务ID
    */
-  getImages(hotelId: string): Promise<HotelImage[]> {
+  getHotelImages(hotelId: string): Promise<HotelImage[]> {
     return rpc.get<HotelImage[]>(`/hotel/details/${hotelId}/images`);
   },
 
   /**
-   * 更新酒店图片
+   * 添加酒店图片
    * @param hotelId 酒店业务ID
-   * @param imageUrls 图片URL列表
+   * @param images 图片列表
    */
-  updateImages(hotelId: string, imageUrls: string[]): Promise<HotelImage[]> {
-    return rpc.post<HotelImage[]>(`/hotel/details/${hotelId}/images`, { imageUrls });
+  addHotelImages(
+    hotelId: string,
+    images: Array<{ imageUrl: string; imageType?: string; sortOrder?: number }>
+  ): Promise<{ count: number }> {
+    return rpc.post<{ count: number }>(`/hotel/details/${hotelId}/images`, { images });
+  },
+
+  /**
+   * 删除酒店图片
+   * @param hotelId 酒店业务ID
+   * @param imageId 图片ID
+   */
+  deleteHotelImage(hotelId: string, imageId: number): Promise<null> {
+    return rpc.delete<null>(`/hotel/details/${hotelId}/images/${imageId}`);
+  },
+
+  /**
+   * 更新酒店主图（封面图）
+   * @param hotelId 酒店业务ID
+   * @param coverImage 主图URL
+   */
+  updateCoverImage(hotelId: string, coverImage: string): Promise<HotelDetail> {
+    return rpc.put<HotelDetail>(`/hotel/details/${hotelId}`, { coverImage });
   },
 
   // ===================== 政策相关 API =====================
