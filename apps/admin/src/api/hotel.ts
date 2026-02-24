@@ -47,6 +47,7 @@ export function transformToFormData(fullInfo: any): HotelFormData {
     address: detail?.address || '',
     phone: detail?.phone || '',
     starRating: detail?.starRating || 0,
+    openingYear: detail?.openingYear ?? undefined,
     description: detail?.description || '',
     images: images.map((img: HotelImage) => img.imageUrl),
     roomTypes: [...new Set(rooms.map((r: RoomDetail) => r.roomType).filter(Boolean))] as string[],
@@ -94,6 +95,7 @@ export function transformFromFormData(formData: HotelFormData): {
       address: formData.address,
       phone: formData.phone,
       starRating: formData.starRating,
+      openingYear: formData.openingYear,
       description: formData.description
     },
     rooms: formData.roomDetails.map((room) => ({

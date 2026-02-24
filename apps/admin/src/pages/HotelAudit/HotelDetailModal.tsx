@@ -105,6 +105,7 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({ open, hotel, onClos
             <Descriptions.Item label="星级">
               {detail.starRating ? `${detail.starRating}星` : '未设置'}
             </Descriptions.Item>
+            <Descriptions.Item label="开业年份">{detail.openingYear ?? '未设置'}</Descriptions.Item>
             <Descriptions.Item label="联系电话">{detail.phone || '未设置'}</Descriptions.Item>
             <Descriptions.Item label="地址" span={2}>
               {detail.address || '未设置'}
