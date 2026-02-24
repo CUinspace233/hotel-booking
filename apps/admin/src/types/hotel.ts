@@ -185,6 +185,7 @@ export interface FrontendRoomDetail {
   maxOccupancy: string;
   floor: string;
   basePrice: string;
+  totalCount: string; // 库存数量（房间总数）
 }
 
 /** 前端政策详情（用于表单） */
@@ -279,6 +280,7 @@ export interface UpsertRoomParams {
   maxOccupancy?: string;
   floor?: string;
   basePrice?: number;
+  totalCount?: number; // 库存数量（房间总数）
 }
 
 /** 创建/更新政策参数 */

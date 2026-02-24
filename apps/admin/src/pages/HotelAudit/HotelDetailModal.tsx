@@ -195,6 +195,14 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({ open, hotel, onClos
                           {room.basePrice ? `¥${room.basePrice}/晚` : '未设置'}
                         </div>
                       </Col>
+                      <Col span={12}>
+                        <div>
+                          <strong>库存数量：</strong>
+                          {room.totalCount != null && room.totalCount !== ''
+                            ? `${room.totalCount}间`
+                            : '未设置'}
+                        </div>
+                      </Col>
                     </Row>
                   </Card>
                 </Col>

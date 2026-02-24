@@ -133,7 +133,8 @@ const HotelDetail: React.FC = () => {
             roomSize: room.roomSize,
             maxOccupancy: room.maxOccupancy,
             floor: room.floor,
-            basePrice: room.basePrice ? Math.round(parseFloat(room.basePrice) * 100) : undefined
+            basePrice: room.basePrice ? Math.round(parseFloat(room.basePrice) * 100) : undefined,
+            totalCount: room.totalCount ? parseInt(room.totalCount, 10) : undefined
           }))
         );
       }
@@ -279,7 +280,8 @@ const HotelDetail: React.FC = () => {
       roomSize: '',
       maxOccupancy: '',
       floor: '',
-      basePrice: ''
+      basePrice: '',
+      totalCount: ''
     };
     setRoomDetails([...roomDetails, newRoom]);
   };
@@ -346,7 +348,8 @@ const HotelDetail: React.FC = () => {
           roomSize: room.roomSize,
           maxOccupancy: room.maxOccupancy,
           floor: room.floor,
-          basePrice: room.basePrice ? Math.round(parseFloat(room.basePrice) * 100) : undefined
+          basePrice: room.basePrice ? Math.round(parseFloat(room.basePrice) * 100) : undefined,
+          totalCount: room.totalCount ? parseInt(room.totalCount, 10) : undefined
         }))
       );
       message.success('房型信息保存成功');
@@ -672,6 +675,7 @@ const HotelDetail: React.FC = () => {
                       {room.roomSize && ` | 面积: ${room.roomSize}`}
                       {room.maxOccupancy && ` | 可住: ${room.maxOccupancy}人`}
                       {room.floor && ` | 楼层: ${room.floor}`}
+                      {room.totalCount && ` | 库存: ${room.totalCount}间`}
                     </div>
                   ))
                 : '暂无房间详情'}

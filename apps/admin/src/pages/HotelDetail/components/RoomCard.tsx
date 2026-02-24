@@ -233,6 +233,23 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, isViewMode, onRoomChange, onR
           </div>
         </Col>
       </Row>
+      <Row gutter={16}>
+        <Col span={12}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              库存数量（间）
+            </label>
+            <Input
+              placeholder="请输入该房型的房间总数"
+              value={room.totalCount}
+              onChange={(e) => onRoomChange(room.id, 'totalCount', e.target.value)}
+              disabled={isViewMode}
+              type="number"
+              min={0}
+            />
+          </div>
+        </Col>
+      </Row>
 
       {/* 房型图片管理区域 */}
       <div style={{ marginTop: 16, borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
