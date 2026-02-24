@@ -7,22 +7,20 @@ import type { HotelDetail, Prisma } from '.prisma/client';
  */
 class HotelDetailRepository {
   /**
-   * 根据 hotelId 和版本查找详情
-   * @param version 版本类型：draft / published
+   * 根据 hotelId 查找详情
    */
-  async findByHotelId(hotelId: string, version: string = 'draft'): Promise<HotelDetail | null> {
+  async findByHotelId(hotelId: string): Promise<HotelDetail | null> {
     return prisma.hotelDetail.findUnique({
-      where: { hotelId_version: { hotelId, version } }
+      where: { hotelId }
     });
   }
 
   /**
    * 查找详情（含设施和图片）
-   * @param version 版本类型：draft / published
    */
-  async findByHotelIdWithRelations(hotelId: string, version: string = 'draft') {
+  async findByHotelIdWithRelations(hotelId: string) {
     return prisma.hotelDetail.findUnique({
-      where: { hotelId_version: { hotelId, version } },
+      where: { hotelId },
       include: {
         facilities: true,
         images: {
@@ -43,16 +41,11 @@ class HotelDetailRepository {
 
   /**
    * 更新详情
-   * @param version 版本类型：draft / published
    */
-  async update(
-    hotelId: string,
-    data: Prisma.HotelDetailUpdateInput,
-    version: string = 'draft'
-  ): Promise<HotelDetail | null> {
+  async update(hotelId: string, data: Prisma.HotelDetailUpdateInput): Promise<HotelDetail | null> {
     try {
       return await prisma.hotelDetail.update({
-        where: { hotelId_version: { hotelId, version } },
+        where: { hotelId },
         data
       });
     } catch (err: unknown) {
@@ -70,21 +63,13 @@ class HotelDetailRepository {
 
   /**
    * 更新或创建详情（upsert）
-   * @param version 版本类型：draft / published
    */
-  async upsert(
-    hotelId: string,
-    data: Record<string, unknown>,
-    version: string = 'draft'
-  ): Promise<HotelDetail> {
+  async upsert(hotelId: string, data: Record<string, unknown>): Promise<HotelDetail> {
     return prisma.hotelDetail.upsert({
-      where: { hotelId_version: { hotelId, version } },
+      where: { hotelId },
       create: {
-        version,
-        ...data,
-        project: {
-          connect: { hotelId }
-        }
+        hotelId,
+        ...data
       },
       update: data
     });

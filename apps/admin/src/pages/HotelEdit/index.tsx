@@ -1,6 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Table, Button, Space, message, Popconfirm, Tag, Typography, Spin } from 'antd';
+import {
+  Card,
+  Table,
+  Button,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  message,
+  Popconfirm,
+  Tag,
+  Row,
+  Col,
+  Typography,
+  Spin
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -11,10 +27,8 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 
-import { hotelApi } from '@/api/hotel';
-import type { HotelProject, HotelStatus } from '@/types';
+import { hotelApi, type HotelProject, type HotelStatus, type HotelType } from '@/api';
 import { RpcError } from '@/utils/rpc';
-import CreateHotelModal from './CreateHotelModal';
 
 const { Text } = Typography;
 
@@ -33,7 +47,6 @@ const hotelTypeMap: Record<string, string> = {
 const statusMap: Record<HotelStatus, { color: string; text: string }> = {
   draft: { color: 'default', text: '草稿' },
   pending: { color: 'processing', text: '提审中' },
-  pending_update: { color: 'processing', text: '修改提审中' },
   approved: { color: 'success', text: '审核通过' },
   rejected: { color: 'error', text: '审核驳回' },
   offline: { color: 'warning', text: '已下线' }
@@ -43,12 +56,14 @@ const HotelEdit: React.FC = () => {
   const navigate = useNavigate();
   const [dataSource, setDataSource] = useState<HotelProject[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0
   });
+  const [form] = Form.useForm();
 
   // 格式化日期显示
   const formatDate = (dateString: string | null): string => {
@@ -195,13 +210,8 @@ const HotelEdit: React.FC = () => {
 
   // 打开新建弹窗
   const handleAdd = () => {
+    form.resetFields();
     setModalVisible(true);
-  };
-
-  // 新建成功回调
-  const handleCreateSuccess = () => {
-    setModalVisible(false);
-    fetchHotelList(1, pagination.pageSize);
   };
 
   // 跳转到详情编辑页面
@@ -245,6 +255,36 @@ const HotelEdit: React.FC = () => {
       } else {
         message.error('提交审核失败，请稍后重试');
       }
+    }
+  };
+
+  // 保存新建酒店基础信息
+  const handleSave = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+
+      await hotelApi.create({
+        name: values.name,
+        hotelType: values.hotelType as HotelType
+      });
+
+      message.success('酒店创建成功，请点击编辑完善详细信息');
+      setModalVisible(false);
+      // 刷新列表，跳到第一页查看新创建的记录
+      fetchHotelList(1, pagination.pageSize);
+    } catch (error) {
+      console.error('创建酒店失败:', error);
+      if (error instanceof RpcError) {
+        message.error(error.message || '创建失败');
+      } else if (error && typeof error === 'object' && 'errorFields' in error) {
+        // 表单验证错误
+        message.error('请检查表单信息');
+      } else {
+        message.error('创建失败，请稍后重试');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -295,12 +335,50 @@ const HotelEdit: React.FC = () => {
         </Spin>
       </Card>
 
-      {/* 新建酒店弹窗 */}
-      <CreateHotelModal
+      {/* 新建酒店弹窗 - 只填写基础信息 */}
+      <Modal
+        title="新建酒店"
         open={modalVisible}
+        onOk={handleSave}
         onCancel={() => setModalVisible(false)}
-        onSuccess={handleCreateSuccess}
-      />
+        width={500}
+        okText="创建"
+        cancelText="取消"
+        confirmLoading={loading}
+        okButtonProps={{ disabled: loading }}
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="name"
+            label="酒店名称"
+            rules={[{ required: true, message: '请输入酒店名称' }]}
+          >
+            <Input placeholder="请输入酒店名称" maxLength={50} showCount />
+          </Form.Item>
+
+          <Form.Item
+            name="hotelType"
+            label="酒店类型"
+            rules={[{ required: true, message: '请选择酒店类型' }]}
+          >
+            <Select placeholder="请选择酒店类型">
+              <Select.Option value="business">商务酒店</Select.Option>
+              <Select.Option value="resort">度假酒店</Select.Option>
+              <Select.Option value="boutique">精品酒店</Select.Option>
+              <Select.Option value="budget">经济酒店</Select.Option>
+              <Select.Option value="apartment">公寓式酒店</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Row>
+            <Col span={24}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                提示：创建酒店后，系统将自动生成唯一酒店ID。您可以点击"编辑"按钮完善酒店详细信息。
+              </Text>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
     </div>
   );
 };

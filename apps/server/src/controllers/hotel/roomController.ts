@@ -64,8 +64,14 @@ export class HotelRoomController {
       if (!createData.hotelId) {
         return ResponseUtil.error(res, 'hotelId 不能为空', 400);
       }
-      if (!createData.roomName) {
+      if (!createData.name) {
         return ResponseUtil.error(res, '房型名称不能为空', 400);
+      }
+      if (!createData.roomType) {
+        return ResponseUtil.error(res, '房型类型不能为空', 400);
+      }
+      if (createData.basePrice === undefined || createData.basePrice === null) {
+        return ResponseUtil.error(res, '基础价格不能为空', 400);
       }
 
       const room = await hotelRoomService.create(createData);
@@ -220,41 +226,6 @@ export class HotelRoomController {
       }
       console.error('[HotelRoomController.deleteImage] Error:', err);
       return ResponseUtil.serverError(res, '删除图片失败');
-    }
-  }
-
-  /**
-   * 批量更新房间
-   * PUT /api/hotel/rooms/batch
-   * Body: { hotelId: string, rooms: BatchUpdateRoomItem[], version?: string }
-   */
-  static async batchUpdate(req: Request, res: Response) {
-    try {
-      const { hotelId, rooms, version = 'draft' } = req.body;
-
-      if (!hotelId) {
-        return ResponseUtil.error(res, 'hotelId 不能为空', 400);
-      }
-
-      if (!Array.isArray(rooms)) {
-        return ResponseUtil.error(res, 'rooms 必须是数组', 400);
-      }
-
-      // 验证每个房间数据
-      for (const room of rooms) {
-        if (!room.roomName || typeof room.roomName !== 'string') {
-          return ResponseUtil.error(res, '每个房间必须包含有效的 roomName', 400);
-        }
-      }
-
-      const updatedRooms = await hotelRoomService.batchUpdate(hotelId, rooms, version);
-      return ResponseUtil.success(res, updatedRooms, '批量更新成功');
-    } catch (err) {
-      if (err instanceof ServiceError) {
-        return ResponseUtil.error(res, err.message, err.code);
-      }
-      console.error('[HotelRoomController.batchUpdate] Error:', err);
-      return ResponseUtil.serverError(res, '批量更新房间失败');
     }
   }
 }

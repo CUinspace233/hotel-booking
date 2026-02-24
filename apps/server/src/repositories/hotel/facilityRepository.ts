@@ -17,7 +17,6 @@ class FacilityRepository {
 
   /**
    * 批量添加酒店设施
-   * @param version 版本类型：draft / published
    */
   async addHotelFacilities(
     hotelId: string,
@@ -25,23 +24,19 @@ class FacilityRepository {
       facilityCode: string;
       facilityName: string;
       facilityCategory?: string;
-      description?: string;
       isFree?: boolean;
-    }>,
-    version: string = 'draft'
+    }>
   ): Promise<number> {
     // 先删除已有设施
-    await prisma.hotelFacility.deleteMany({ where: { hotelId, version } });
+    await prisma.hotelFacility.deleteMany({ where: { hotelId } });
 
     // 批量创建
     const result = await prisma.hotelFacility.createMany({
       data: facilities.map((f) => ({
         hotelId,
-        version,
         facilityCode: f.facilityCode,
         facilityName: f.facilityName,
         facilityCategory: f.facilityCategory || 'general',
-        description: f.description || null,
         isFree: f.isFree ?? true
       }))
     });
@@ -50,24 +45,18 @@ class FacilityRepository {
 
   /**
    * 获取酒店设施列表
-   * @param version 版本类型：draft / published
    */
-  async getHotelFacilities(hotelId: string, version: string = 'draft'): Promise<HotelFacility[]> {
-    return prisma.hotelFacility.findMany({ where: { hotelId, version } });
+  async getHotelFacilities(hotelId: string): Promise<HotelFacility[]> {
+    return prisma.hotelFacility.findMany({ where: { hotelId } });
   }
 
   /**
    * 删除酒店设施
-   * @param version 版本类型：draft / published
    */
-  async deleteHotelFacility(
-    hotelId: string,
-    facilityCode: string,
-    version: string = 'draft'
-  ): Promise<boolean> {
+  async deleteHotelFacility(hotelId: string, facilityCode: string): Promise<boolean> {
     try {
       await prisma.hotelFacility.delete({
-        where: { hotelId_version_facilityCode: { hotelId, version, facilityCode } }
+        where: { hotelId_facilityCode: { hotelId, facilityCode } }
       });
       return true;
     } catch {
@@ -133,7 +122,6 @@ class FacilityRepository {
 
   /**
    * 批量添加酒店图片
-   * @param version 版本类型：draft / published
    */
   async addHotelImages(
     hotelId: string,
@@ -141,13 +129,11 @@ class FacilityRepository {
       imageUrl: string;
       imageType?: string;
       sortOrder?: number;
-    }>,
-    version: string = 'draft'
+    }>
   ): Promise<number> {
     const result = await prisma.hotelImage.createMany({
       data: images.map((img, index) => ({
         hotelId,
-        version,
         imageUrl: img.imageUrl,
         imageType: img.imageType || 'hotel',
         sortOrder: img.sortOrder ?? index
@@ -158,11 +144,10 @@ class FacilityRepository {
 
   /**
    * 获取酒店图片列表
-   * @param version 版本类型：draft / published
    */
-  async getHotelImages(hotelId: string, version: string = 'draft'): Promise<HotelImage[]> {
+  async getHotelImages(hotelId: string): Promise<HotelImage[]> {
     return prisma.hotelImage.findMany({
-      where: { hotelId, version },
+      where: { hotelId },
       orderBy: { sortOrder: 'asc' }
     });
   }
@@ -181,10 +166,9 @@ class FacilityRepository {
 
   /**
    * 删除酒店所有图片
-   * @param version 版本类型：draft / published
    */
-  async deleteAllHotelImages(hotelId: string, version: string = 'draft'): Promise<number> {
-    const result = await prisma.hotelImage.deleteMany({ where: { hotelId, version } });
+  async deleteAllHotelImages(hotelId: string): Promise<number> {
+    const result = await prisma.hotelImage.deleteMany({ where: { hotelId } });
     return result.count;
   }
 

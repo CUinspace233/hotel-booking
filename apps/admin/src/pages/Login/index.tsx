@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Form, Input, Button, Tabs, message, Radio } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { useUserStore, type UserRole } from '@/store';
-import { authApi } from '@/api/auth';
-import type { LoginParams, RegisterParams } from '@/types';
+import { authApi, type LoginParams, type RegisterParams } from '@/api';
 import { RpcError } from '@/utils/rpc';
 import './index.css';
 
