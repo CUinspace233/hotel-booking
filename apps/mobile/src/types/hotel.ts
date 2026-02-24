@@ -57,11 +57,24 @@ export interface FilterState {
   city: string;
   checkInDate: string;
   checkOutDate: string;
+  roomCount: number;
+  adultCount: number;
   starRating: number | undefined;
   hotelType: string;
   minPrice: number | undefined;
   maxPrice: number | undefined;
   sortBy: 'price_asc' | 'price_desc' | 'rating_desc' | 'default';
+}
+
+// 搜索建议项
+export interface SearchSuggestionItem {
+  hotelId: string;
+  name: string;
+  city: string;
+  district: string;
+  address: string;
+  minPrice: number | null;
+  starRating: number | null;
 }
 
 // 设施映射
