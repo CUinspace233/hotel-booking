@@ -47,6 +47,7 @@ const hotelTypeMap: Record<string, string> = {
 const statusMap: Record<HotelStatus, { color: string; text: string }> = {
   draft: { color: 'default', text: '草稿' },
   pending: { color: 'processing', text: '提审中' },
+  pending_update: { color: 'processing', text: '修改提审中' },
   approved: { color: 'success', text: '审核通过' },
   rejected: { color: 'error', text: '审核驳回' },
   offline: { color: 'warning', text: '已下线' }

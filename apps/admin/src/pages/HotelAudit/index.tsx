@@ -27,7 +27,7 @@ import {
   StopOutlined,
   PlayCircleOutlined
 } from '@ant-design/icons';
-import { hotelApi, POLICY_TYPE_OPTIONS } from '@/api/hotel';
+import { hotelApi, POLICY_TYPE_OPTIONS, getCategoryLabel } from '@/api/hotel';
 import type { HotelProject, HotelFormData, HotelStatus } from '@/api/hotel';
 
 // 状态标签映射
@@ -469,7 +469,7 @@ const HotelAudit: React.FC = () => {
               </Descriptions.Item>
             </Descriptions>
 
-            {/* 设施政策 */}
+            {/* 设施服务 */}
             <h4
               style={{
                 borderBottom: '1px solid #eee',
@@ -478,7 +478,57 @@ const HotelAudit: React.FC = () => {
                 marginBottom: 16
               }}
             >
-              设施政策
+              设施服务
+            </h4>
+            {currentDetail.facilities && currentDetail.facilities.length > 0 ? (
+              (() => {
+                const categories = [...new Set(currentDetail.facilities.map((f) => f.category))];
+                return (
+                  <div>
+                    {categories.map((cat) => (
+                      <div key={cat} style={{ marginBottom: 16 }}>
+                        <div
+                          style={{
+                            fontWeight: 500,
+                            marginBottom: 8,
+                            color: '#333'
+                          }}
+                        >
+                          ▼ {getCategoryLabel(cat)}
+                        </div>
+                        <Space wrap size={[8, 8]}>
+                          {currentDetail.facilities
+                            .filter((f) => f.category === cat)
+                            .map((facility, index) => (
+                              <Tag key={facility.id || index} color="green">
+                                {facility.facilityName}
+                                {facility.description && (
+                                  <span style={{ color: '#666', marginLeft: 4 }}>
+                                    ({facility.description})
+                                  </span>
+                                )}
+                              </Tag>
+                            ))}
+                        </Space>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()
+            ) : (
+              <Empty description="暂无设施信息" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
+
+            {/* 酒店政策 */}
+            <h4
+              style={{
+                borderBottom: '1px solid #eee',
+                paddingBottom: 8,
+                marginTop: 24,
+                marginBottom: 16
+              }}
+            >
+              酒店政策
             </h4>
             {currentDetail.policies && currentDetail.policies.length > 0 ? (
               <Row gutter={[16, 16]}>

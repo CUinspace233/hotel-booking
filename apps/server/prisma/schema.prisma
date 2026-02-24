@@ -191,6 +191,7 @@ model HotelFacility {
   facilityCode     String   @map("facility_code")
   facilityName     String   @map("facility_name")
   facilityCategory String?  @default("general") @map("facility_category")
+  description      String?  @map("description")        // 设施描述（可选）
   isFree           Boolean  @default(true) @map("is_free")
   createdAt        DateTime @default(now()) @map("created_at")
 
