@@ -28,15 +28,15 @@ import {
   SendOutlined,
   PictureOutlined
 } from '@ant-design/icons';
+import { hotelApi } from '@/api/hotel';
 import {
-  hotelApi,
   POLICY_TYPE_OPTIONS,
   getPolicyNameByType,
   FACILITY_CATEGORIES,
   FACILITY_OPTIONS_BY_CATEGORY,
   isPresetCategory,
   getCategoryLabel
-} from '@/api/hotel';
+} from '@/constants';
 import type {
   HotelFormData,
   FrontendRoomDetail,
@@ -46,7 +46,7 @@ import type {
   FacilityCategory,
   RoomImage,
   HotelImage
-} from '@/api/hotel';
+} from '@/types';
 
 const { Title } = Typography;
 
