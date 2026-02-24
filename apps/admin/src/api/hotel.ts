@@ -180,6 +180,16 @@ export const hotelApi = {
     return rpc.put<HotelProject>(`/hotel/projects/${hotelId}/status`, { status: 'pending' });
   },
 
+  /**
+   * 撤回审核
+   * - pending 状态撤回后变为 draft
+   * - pending_update 状态撤回后变为 approved
+   * @param hotelId 酒店业务ID
+   */
+  withdrawReview(hotelId: string): Promise<HotelProject> {
+    return rpc.put<HotelProject>(`/hotel/projects/${hotelId}/withdraw-review`);
+  },
+
   // ===================== 酒店详情相关 API =====================
 
   /**

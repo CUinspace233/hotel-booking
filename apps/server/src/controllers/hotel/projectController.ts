@@ -252,4 +252,23 @@ export class HotelProjectController {
       return ResponseUtil.serverError(res, '恢复上线失败');
     }
   }
+
+  /**
+   * 撤回审核
+   * PUT /api/hotel/projects/:hotelId/withdraw-review
+   */
+  static async withdrawReview(req: Request, res: Response) {
+    try {
+      const hotelId = req.params.hotelId as string;
+
+      const project = await hotelProjectService.withdrawReview(hotelId);
+      return ResponseUtil.success(res, project, '撤回审核成功');
+    } catch (err) {
+      if (err instanceof ServiceError) {
+        return ResponseUtil.error(res, err.message, err.code);
+      }
+      console.error('[HotelProjectController.withdrawReview] Error:', err);
+      return ResponseUtil.serverError(res, '撤回审核失败');
+    }
+  }
 }
