@@ -43,6 +43,7 @@ const HotelDetail: React.FC = () => {
     address: '',
     phone: '',
     starRating: 0,
+    openingYear: undefined,
     description: '',
     images: [],
     roomTypes: [],
@@ -525,6 +526,29 @@ const HotelDetail: React.FC = () => {
           <Row gutter={24}>
             <Col span={12}>
               <Form.Item
+                label="开业年份"
+                name="openingYear"
+                rules={[
+                  { required: true, message: '请输入开业年份' },
+                  {
+                    type: 'number',
+                    min: 1900,
+                    max: new Date().getFullYear(),
+                    message: `年份需在 1900 至 ${new Date().getFullYear()} 之间`
+                  }
+                ]}
+              >
+                <InputNumber
+                  min={1900}
+                  max={new Date().getFullYear()}
+                  placeholder="请输入开业年份"
+                  style={{ width: '100%' }}
+                  disabled={isViewMode}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
                 label="联系电话"
                 name="phone"
                 rules={[{ required: true, message: '请输入联系电话' }]}
@@ -532,6 +556,9 @@ const HotelDetail: React.FC = () => {
                 <Input placeholder="请输入联系电话" disabled={isViewMode} />
               </Form.Item>
             </Col>
+          </Row>
+
+          <Row gutter={24}>
             <Col span={12}>
               <Form.Item label="酒店状态" name="status">
                 <Input placeholder="酒店状态" disabled />
@@ -651,6 +678,7 @@ const HotelDetail: React.FC = () => {
           <Descriptions bordered column={2}>
             <Descriptions.Item label="酒店名称">{hotelData.name}</Descriptions.Item>
             <Descriptions.Item label="星级">{hotelData.starRating} 星级</Descriptions.Item>
+            <Descriptions.Item label="开业年份">{hotelData.openingYear ?? '-'}</Descriptions.Item>
             <Descriptions.Item label="联系电话">{hotelData.phone}</Descriptions.Item>
             <Descriptions.Item label="状态">
               {hotelData.status === 'approved' ? '已审核' : '待审核'}

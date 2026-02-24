@@ -211,6 +211,7 @@ export interface HotelFormData {
   address: string;
   phone: string;
   starRating: number;
+  openingYear?: number;
   description: string;
   images: string[];
   roomTypes: string[];
@@ -263,6 +264,7 @@ export interface UpdateHotelDetailParams {
   address?: string;
   phone?: string;
   starRating?: number;
+  openingYear?: number;
   description?: string;
   checkInTime?: string;
   checkOutTime?: string;
