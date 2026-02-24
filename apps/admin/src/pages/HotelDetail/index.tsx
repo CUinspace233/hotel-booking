@@ -15,7 +15,9 @@ import {
   Modal,
   Tag,
   message,
-  Tabs
+  Tabs,
+  Image,
+  Popconfirm
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -23,7 +25,8 @@ import {
   EditOutlined,
   PlusOutlined,
   DeleteOutlined,
-  SendOutlined
+  SendOutlined,
+  PictureOutlined
 } from '@ant-design/icons';
 import {
   hotelApi,
@@ -40,7 +43,9 @@ import type {
   FrontendPolicyDetail,
   FrontendFacilityDetail,
   PolicyType,
-  FacilityCategory
+  FacilityCategory,
+  RoomImage,
+  HotelImage
 } from '@/api/hotel';
 
 const { Title } = Typography;
@@ -93,6 +98,25 @@ const HotelDetail: React.FC = () => {
 
   // 设施详情状态
   const [facilityDetails, setFacilityDetails] = useState<FrontendFacilityDetail[]>([]);
+
+  // 房型图片状态 - 以 roomId 为 key 存储每个房型的图片列表
+  const [roomImages, setRoomImages] = useState<Record<string, RoomImage[]>>({});
+
+  // 酒店图片状态
+  const [hotelCoverImage, setHotelCoverImage] = useState<string>('');
+  const [hotelImages, setHotelImages] = useState<HotelImage[]>([]);
+
+  // 添加房型图片弹窗状态
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [currentRoomIdForImage, setCurrentRoomIdForImage] = useState<string>('');
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [imageLoading, setImageLoading] = useState(false);
+
+  // 酒店图片弹窗状态
+  const [hotelImageModalVisible, setHotelImageModalVisible] = useState(false);
+  const [hotelImageModalType, setHotelImageModalType] = useState<'cover' | 'gallery'>('cover');
+  const [newHotelImageUrl, setNewHotelImageUrl] = useState('');
+  const [hotelImageLoading, setHotelImageLoading] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -283,6 +307,168 @@ const HotelDetail: React.FC = () => {
       message.error('保存房型失败');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ===================== 房型图片管理 =====================
+
+  // 获取指定房型的图片
+  const fetchRoomImages = async (roomId: string) => {
+    if (!roomId || roomId.startsWith('new_')) return;
+    try {
+      const images = await hotelApi.getRoomImages(roomId);
+      setRoomImages((prev) => ({ ...prev, [roomId]: images }));
+    } catch (error) {
+      console.error('获取房型图片失败:', error);
+    }
+  };
+
+  // 打开添加图片弹窗
+  const handleOpenImageModal = (roomId: string) => {
+    if (roomId.startsWith('new_')) {
+      message.warning('请先保存房型信息后再添加图片');
+      return;
+    }
+    setCurrentRoomIdForImage(roomId);
+    setNewImageUrl('');
+    setImageModalVisible(true);
+  };
+
+  // 添加图片
+  const handleAddRoomImage = async () => {
+    if (!newImageUrl.trim()) {
+      message.warning('请输入图片URL');
+      return;
+    }
+    if (!currentRoomIdForImage) return;
+
+    try {
+      setImageLoading(true);
+      await hotelApi.addRoomImages(currentRoomIdForImage, [{ imageUrl: newImageUrl.trim() }]);
+      message.success('图片添加成功');
+      setImageModalVisible(false);
+      setNewImageUrl('');
+      fetchRoomImages(currentRoomIdForImage);
+    } catch (error) {
+      console.error('添加图片失败:', error);
+      message.error('添加图片失败');
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  // 删除图片
+  const handleDeleteRoomImage = async (roomId: string, imageId: number) => {
+    try {
+      await hotelApi.deleteRoomImage(roomId, imageId);
+      message.success('图片删除成功');
+      fetchRoomImages(roomId);
+    } catch (error) {
+      console.error('删除图片失败:', error);
+      message.error('删除图片失败');
+    }
+  };
+
+  // 当房型详情加载完成后，获取每个已保存房型的图片
+  useEffect(() => {
+    roomDetails.forEach((room) => {
+      if (!room.id.startsWith('new_') && !roomImages[room.id]) {
+        fetchRoomImages(room.id);
+      }
+    });
+  }, [roomDetails]);
+
+  // ===================== 酒店图片管理 =====================
+
+  // 获取酒店图片（主图和图集）
+  const fetchHotelImages = async () => {
+    if (!hotelId) return;
+    try {
+      const images = await hotelApi.getHotelImages(hotelId);
+      setHotelImages(images);
+    } catch (error) {
+      console.error('获取酒店图片失败:', error);
+    }
+  };
+
+  // 获取酒店主图
+  const fetchHotelCoverImage = async () => {
+    if (!hotelId) return;
+    try {
+      const detail = await hotelApi.getDetail(hotelId);
+      setHotelCoverImage(detail.coverImage || '');
+    } catch (error) {
+      console.error('获取酒店主图失败:', error);
+    }
+  };
+
+  // 加载酒店图片数据
+  useEffect(() => {
+    if (hotelId) {
+      fetchHotelImages();
+      fetchHotelCoverImage();
+    }
+  }, [hotelId]);
+
+  // 打开酒店图片弹窗
+  const handleOpenHotelImageModal = (type: 'cover' | 'gallery') => {
+    setHotelImageModalType(type);
+    setNewHotelImageUrl('');
+    setHotelImageModalVisible(true);
+  };
+
+  // 添加/更新酒店图片
+  const handleAddHotelImage = async () => {
+    if (!newHotelImageUrl.trim()) {
+      message.warning('请输入图片URL');
+      return;
+    }
+    if (!hotelId) return;
+
+    try {
+      setHotelImageLoading(true);
+      if (hotelImageModalType === 'cover') {
+        await hotelApi.updateCoverImage(hotelId, newHotelImageUrl.trim());
+        setHotelCoverImage(newHotelImageUrl.trim());
+        message.success('主图设置成功');
+      } else {
+        await hotelApi.addHotelImages(hotelId, [{ imageUrl: newHotelImageUrl.trim() }]);
+        message.success('图片添加成功');
+        fetchHotelImages();
+      }
+      setHotelImageModalVisible(false);
+      setNewHotelImageUrl('');
+    } catch (error) {
+      console.error('操作失败:', error);
+      message.error('操作失败');
+    } finally {
+      setHotelImageLoading(false);
+    }
+  };
+
+  // 删除酒店图集图片
+  const handleDeleteHotelImage = async (imageId: number) => {
+    if (!hotelId) return;
+    try {
+      await hotelApi.deleteHotelImage(hotelId, imageId);
+      message.success('图片删除成功');
+      fetchHotelImages();
+    } catch (error) {
+      console.error('删除图片失败:', error);
+      message.error('删除图片失败');
+    }
+  };
+
+  // 清除酒店主图
+  const handleClearCoverImage = async () => {
+    if (!hotelId) return;
+    try {
+      await hotelApi.updateCoverImage(hotelId, '');
+      setHotelCoverImage('');
+      message.success('主图已清除');
+    } catch (error) {
+      console.error('清除主图失败:', error);
+      message.error('清除主图失败');
     }
   };
 
@@ -643,6 +829,246 @@ const HotelDetail: React.FC = () => {
             </Button>
           )}
         </div>
+      </Card>
+
+      {/* 酒店图片卡片 */}
+      <Card title="酒店图片" loading={loading} style={{ marginBottom: 24 }}>
+        <Row gutter={24}>
+          {/* 酒店主图 */}
+          <Col span={8}>
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12
+                }}
+              >
+                <label style={{ fontWeight: 500 }}>
+                  <PictureOutlined style={{ marginRight: 8 }} />
+                  酒店主图
+                </label>
+                {!isViewMode && (
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => handleOpenHotelImageModal('cover')}
+                  >
+                    {hotelCoverImage ? '更换' : '设置'}
+                  </Button>
+                )}
+              </div>
+              {hotelCoverImage ? (
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    paddingTop: '75%',
+                    border: '1px solid #d9d9d9',
+                    borderRadius: 8,
+                    overflow: 'hidden'
+                  }}
+                >
+                  <Image
+                    src={hotelCoverImage}
+                    alt="酒店主图"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                    fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHALAIBB9o3lW0AAAW7SURBVHgB7d0xjuMwEETR3P+Szv/uzDEwwGBJypQp69Wr9AcYLlrp7s7MzDcCAoEAApkJfOVOgTMCCJyBAAIIBAAInMB5IAAAAmcggEBmAgpC5gS4HgGrAAgEAAgAgAAACACAAAJnIIAAAmcggEBmAkfG5W/v7vvr/T2/fvd9fz33bfP+/v59v5+39+PjeX/f3n+ep9/v9/09t0cAgQAACACAAAIIIIAAAmcggAACZyCAQGYCR8YlfS5+e/e/ffduu/PO51+/e/f93P7dvnz1rh/HcX//u/vv8/v9Pn9/v6/bI4AAAggggAACCCCAAAJnIIAAAmcggAACf0jgd/77ee/ef/d1fp/vuPv+s1/n+/19/Lz7vr/P0+/7fC7+/t0eAQQQQAABBBBAAAEEEDgDAQQQOAMBBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQOAPCez3O1//97d3799992677+e77/u89++/8u777e/9u++9vf/u+3k+Tu8/v+cIIIAAAggggAACCCCAAAJnIIAAAmcggEBmArc/H8ex3+3v7+f17fvd9+PnfXz8/u6/e7773v5+v3/f29/n/Pjr/vt+vs7bI4AAAggggAACCCCAAAIIIHAGAgggcAYCCCCAAH0="
+                  />
+                  {!isViewMode && (
+                    <Popconfirm
+                      title="确定清除主图吗？"
+                      onConfirm={handleClearCoverImage}
+                      okText="确定"
+                      cancelText="取消"
+                    >
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          background: 'rgba(255,255,255,0.8)',
+                          borderRadius: '50%'
+                        }}
+                      />
+                    </Popconfirm>
+                  )}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    paddingTop: '75%',
+                    position: 'relative',
+                    border: '1px dashed #d9d9d9',
+                    borderRadius: 8,
+                    background: '#fafafa'
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      textAlign: 'center',
+                      color: '#999'
+                    }}
+                  >
+                    <PictureOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                    <div>暂无主图</div>
+                  </div>
+                </div>
+              )}
+              <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+                主图将作为酒店的封面展示
+              </div>
+            </div>
+          </Col>
+
+          {/* 酒店图集 */}
+          <Col span={16}>
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12
+                }}
+              >
+                <label style={{ fontWeight: 500 }}>
+                  <PictureOutlined style={{ marginRight: 8 }} />
+                  酒店图集 ({hotelImages.length} 张)
+                </label>
+                {!isViewMode && (
+                  <Button
+                    type="dashed"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => handleOpenHotelImageModal('gallery')}
+                  >
+                    添加图片
+                  </Button>
+                )}
+              </div>
+              {hotelImages.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                  <Image.PreviewGroup>
+                    {hotelImages.map((img) => (
+                      <div
+                        key={img.id}
+                        style={{
+                          position: 'relative',
+                          width: 120,
+                          height: 90,
+                          border: '1px solid #d9d9d9',
+                          borderRadius: 4,
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <Image
+                          src={img.imageUrl}
+                          alt="酒店图片"
+                          width={120}
+                          height={90}
+                          style={{ objectFit: 'cover' }}
+                          fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHALAIBB9o3lW0AAAW7SURBVHgB7d0xjuMwEETR3P+Szv/uzDEwwGBJypQp69Wr9AcYLlrp7s7MzDcCAoEAApkJfOVOgTMCCJyBAAIIBAAInMB5IAAAAmcggEBmAgpC5gS4HgGrAAgEAAgAgAAACACAAAJnIIAAAmcggEBmAkfG5W/v7vvr/T2/fvd9fz33bfP+/v59v5+39+PjeX/f3n+ep9/v9/09t0cAgQAACACAAAIIIIAAAmcggAACZyCAQGYCR8YlfS5+e/e/ffduu/PO51+/e/f93P7dvnz1rh/HcX//u/vv8/v9Pn9/v6/bI4AAAggggAACCCCAAAJnIIAAAmcggAACf0jgd/77ee/ef/d1fp/vuPv+s1/n+/19/Lz7vr/P0+/7fC7+/t0eAQQQQAABBBBAAAEEEDgDAQQQOAMBBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQOAPCez3O1//97d3799992677+e77/u89++/8u777e/9u++9vf/u+3k+Tu8/v+cIIIAAAggggAACCCCAAAJnIIAAAmcggEBmArc/H8ex3+3v7+f17fvd9+PnfXz8/u6/e7773v5+v3/f29/n/Pjr/vt+vs7bI4AAAggggAACCCCAAAIIIHAGAgggcAYCCCCAAH0="
+                        />
+                        {!isViewMode && (
+                          <Popconfirm
+                            title="确定删除这张图片吗？"
+                            onConfirm={() => handleDeleteHotelImage(img.id)}
+                            okText="确定"
+                            cancelText="取消"
+                          >
+                            <Button
+                              type="text"
+                              danger
+                              size="small"
+                              icon={<DeleteOutlined />}
+                              style={{
+                                position: 'absolute',
+                                top: 2,
+                                right: 2,
+                                background: 'rgba(255,255,255,0.8)',
+                                borderRadius: '50%',
+                                padding: 4,
+                                minWidth: 'auto'
+                              }}
+                            />
+                          </Popconfirm>
+                        )}
+                      </div>
+                    ))}
+                  </Image.PreviewGroup>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    color: '#999',
+                    fontSize: 12,
+                    textAlign: 'center',
+                    padding: '32px 0',
+                    border: '1px dashed #d9d9d9',
+                    borderRadius: 8,
+                    background: '#fafafa'
+                  }}
+                >
+                  <PictureOutlined style={{ fontSize: 24, marginBottom: 8, display: 'block' }} />
+                  暂无图集，点击"添加图片"按钮添加
+                </div>
+              )}
+              <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+                图集用于展示酒店的环境、设施等
+              </div>
+            </div>
+          </Col>
+        </Row>
+
+        {/* 酒店图片弹窗 */}
+        <Modal
+          title={hotelImageModalType === 'cover' ? '设置酒店主图' : '添加酒店图片'}
+          open={hotelImageModalVisible}
+          onOk={handleAddHotelImage}
+          onCancel={() => setHotelImageModalVisible(false)}
+          confirmLoading={hotelImageLoading}
+          okText={hotelImageModalType === 'cover' ? '设置' : '添加'}
+          cancelText="取消"
+        >
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8, color: '#666' }}>请输入图片URL地址：</div>
+            <Input.TextArea
+              placeholder="请输入图片URL，例如：https://example.com/image.jpg"
+              value={newHotelImageUrl}
+              onChange={(e) => setNewHotelImageUrl(e.target.value)}
+              rows={3}
+            />
+          </div>
+          {newHotelImageUrl && (
+            <div>
+              <div style={{ marginBottom: 8, color: '#666' }}>图片预览：</div>
+              <Image
+                src={newHotelImageUrl}
+                alt="预览"
+                width={200}
+                fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgesALAIBB8A3FG0AAAX/SURBVHgB7d0JcxRVGEDhGAURcQNR3PdR3BX33Ve7HMvfyE9J6LnPt1HSM8nMdN97TyAQQggPAgIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggg8I8V2PcPO7+/yv7+5u97d/d+n0fPK4LQr/+52+/jfutP4Pj+YX8/AgIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAII/E8E9v4O53Fce3e//rT3Hzz+fvv8xf18fF/n/t1/37dff3r7v+n48rn3/L28fT+Pd/t++Pyh+/zx1/f2c9/x7fd9d/8JnPy++/y03+cd/3yf+r56fDy/9x0rAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQ+I8I7Pc7H0cvfnt4fy/v7Ovr+u/v+v2r7+/5rb7+Pva9+r7f7u/9+n3fe/t6f+ePP//2/Xw8vt/Xx9f38bF/90PQRQABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAIH/icB+v/NxfPXb/fv29fX6+/58t+/jzz//+ty9/t9+97d/7+3r/dzbr/fz/nq9P969F98TAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIPAPE/h/v/H/z4vb19Pz4/Pfe/u6v7+Pz9+92/d5P8/b+/Hx8ef79v3bfd8/tvf3+3z7ff+87z5+v+/3+9/fc0MAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAIH/q8BnEyGRJnXsJ54AAAAASUVORK5CYII="
+              />
+            </div>
+          )}
+        </Modal>
       </Card>
 
       {/* 设施与政策卡片 */}
@@ -1089,8 +1515,133 @@ const HotelDetail: React.FC = () => {
                 </div>
               </Col>
             </Row>
+
+            {/* 房型图片管理区域 */}
+            <div style={{ marginTop: 16, borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12
+                }}
+              >
+                <label style={{ fontWeight: 500 }}>
+                  <PictureOutlined style={{ marginRight: 8 }} />
+                  房型图片
+                </label>
+                {!isViewMode && (
+                  <Button
+                    type="dashed"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => handleOpenImageModal(room.id)}
+                    disabled={room.id.startsWith('new_')}
+                  >
+                    添加图片
+                  </Button>
+                )}
+              </div>
+
+              {room.id.startsWith('new_') ? (
+                <div
+                  style={{ color: '#999', fontSize: 12, textAlign: 'center', padding: '16px 0' }}
+                >
+                  请先保存房型信息后再添加图片
+                </div>
+              ) : roomImages[room.id] && roomImages[room.id].length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                  <Image.PreviewGroup>
+                    {roomImages[room.id].map((img) => (
+                      <div
+                        key={img.id}
+                        style={{
+                          position: 'relative',
+                          width: 120,
+                          height: 90,
+                          border: '1px solid #d9d9d9',
+                          borderRadius: 4,
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <Image
+                          src={img.imageUrl}
+                          alt="房型图片"
+                          width={120}
+                          height={90}
+                          style={{ objectFit: 'cover' }}
+                          fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgesALAIBB8A3FG0AAAX/SURBVHgB7d0JcxRVGEDhGAURcQNR3PdR3BX33Ve7HMvfyE9J6LnPt1HSM8nMdN97TyAQQggPAgIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggg8I8V2PcPO7+/yv7+5u97d/d+n0fPK4LQr/+52+/jfutP4Pj+YX8/AgIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAII/E8E9v4O53Fce3e//rT3Hzz+fvv8xf18fF/n/t1/37dff3r7v+n48rn3/L28fT+Pd/t++Pyh+/zx1/f2c9/x7fd9d/8JnPy++/y03+cd/3yf+r56fDy/9x0rAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQ+I8I7Pc7H0cvfnt4fy/v7Ovr+u/v+v2r7+/5rb7+Pva9+r7f7u/9+n3fe/t6f+ePP//2/Xw8vt/Xx9f38bF/90PQRQABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAIH/icB+v/NxfPXb/fv29fX6+/58t+/jzz//+ty9/t9+97d/7+3r/dzbr/fz/nq9P969F98TAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIIAAAggggAACCCCAAAIIIPAPE/h/v/H/z4vb19Pz4/Pfe/u6v7+Pz9+92/d5P8/b+/Hx8ef79v3bfd8/tvf3+3z7ff+87z5+v+/3+9/fc0MAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAIH/q8BnEyGRJnXsJ54AAAAASUVORK5CYII="
+                        />
+                        {!isViewMode && (
+                          <Popconfirm
+                            title="确定删除这张图片吗？"
+                            onConfirm={() => handleDeleteRoomImage(room.id, img.id)}
+                            okText="确定"
+                            cancelText="取消"
+                          >
+                            <Button
+                              type="text"
+                              danger
+                              size="small"
+                              icon={<DeleteOutlined />}
+                              style={{
+                                position: 'absolute',
+                                top: 2,
+                                right: 2,
+                                background: 'rgba(255,255,255,0.8)',
+                                borderRadius: '50%',
+                                padding: 4,
+                                minWidth: 'auto'
+                              }}
+                            />
+                          </Popconfirm>
+                        )}
+                      </div>
+                    ))}
+                  </Image.PreviewGroup>
+                </div>
+              ) : (
+                <div
+                  style={{ color: '#999', fontSize: 12, textAlign: 'center', padding: '16px 0' }}
+                >
+                  暂无图片，点击"添加图片"按钮添加
+                </div>
+              )}
+            </div>
           </Card>
         ))}
+
+        {/* 添加图片弹窗 */}
+        <Modal
+          title="添加房型图片"
+          open={imageModalVisible}
+          onOk={handleAddRoomImage}
+          onCancel={() => setImageModalVisible(false)}
+          confirmLoading={imageLoading}
+          okText="添加"
+          cancelText="取消"
+        >
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8, color: '#666' }}>请输入图片URL地址：</div>
+            <Input.TextArea
+              placeholder="请输入图片URL，例如：https://example.com/image.jpg"
+              value={newImageUrl}
+              onChange={(e) => setNewImageUrl(e.target.value)}
+              rows={3}
+            />
+          </div>
+          {newImageUrl && (
+            <div>
+              <div style={{ marginBottom: 8, color: '#666' }}>图片预览：</div>
+              <Image
+                src={newImageUrl}
+                alt="预览"
+                width={200}
+                fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHALAIBB9o3lW0AAAW7SURBVHgB7d0xjuMwEETR3P+Szv/uzDEwwGBJypQp69Wr9AcYLlrp7s7MzDcCAoEAApkJfOVOgTMCCJyBAAIIBAAInMB5IAAAAmcggEBmAgpC5gS4HgGrAAgEAAgAgAAACACAAAJnIIAAAmcggEBmAkfG5W/v7vvr/T2/fvd9fz33bfP+/v59v5+39+PjeX/f3n+ep9/v9/09t0cAgQAACACAAAIIIIAAAmcggAACZyCAQGYCR8YlfS5+e/e/ffduu/PO51+/e/f93P7dvnz1rh/HcX//u/vv8/v9Pn9/v6/bI4AAAggggAACCCCAAAJnIIAAAmcggAACf0jgd/77ee/ef/d1fp/vuPv+s1/n+/19/Lz7vr/P0+/7fC7+/t0eAQQQQAABBBBAAAEEEDgDAQQQOAMBBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQOAPCez3O1//97d3799992677+e77/u89++/8u777e/9u++9vf/u+3k+Tu8/v+cIIIAAAggggAACCCCAAAJnIIAAAmcggEBmArc/H8ex3+3v7+f17fvd9+PnfXz8/u6/e7773v5+v3/f29/n/Pjr/vt+vs7bI4AAAggggAACCCCAAAIIIHAGAgggcAYCCCCAAH0="
+              />
+            </div>
+          )}
+        </Modal>
 
         {/* 房型保存按钮 - 只在编辑模式下显示 */}
         {!isViewMode && (
