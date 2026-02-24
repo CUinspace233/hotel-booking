@@ -2,23 +2,13 @@ import { defineConfig, type UserConfigExport } from '@tarojs/cli';
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 import devConfig from './dev';
 import prodConfig from './prod';
-import NutUIResolver from '@nutui/auto-import-resolver';
-
-import Components from 'unplugin-vue-components/vite';
 
 // https://taro-docs.jd.com/docs/next/config#defineconfig-辅助函数
 export default defineConfig<'vite'>(async (merge, { command, mode }) => {
   const baseConfig: UserConfigExport<'vite'> = {
     projectName: 'mobile',
-    date: '2026-1-30',
-    designWidth(input) {
-      // 配置 NutUI 375 尺寸
-      if (input?.file?.replace(/\\+/g, '/').indexOf('@nutui') > -1) {
-        return 375;
-      }
-      // 全局使用 Taro 默认的 750 尺寸
-      return 750;
-    },
+    date: '2026-2-23',
+    designWidth: 750,
     deviceRatio: {
       640: 2.34 / 2,
       750: 1,
@@ -27,22 +17,18 @@ export default defineConfig<'vite'>(async (merge, { command, mode }) => {
     },
     sourceRoot: 'src',
     outputRoot: 'dist',
-    plugins: ['@tarojs/plugin-html'],
+    plugins: [],
     defineConstants: {},
     copy: {
       patterns: [],
       options: {}
     },
-    framework: 'vue3',
-    compiler: {
-      type: 'vite',
-      vitePlugins: [
-        Components({
-          resolvers: [NutUIResolver({ taro: true })]
-        })
-      ]
-    },
+    framework: 'react',
+    compiler: 'vite',
     mini: {
+      sassLoaderOption: {
+        silenceDeprecations: ['legacy-js-api', 'import', 'global-builtin']
+      },
       postcss: {
         pxtransform: {
           enable: true,
@@ -58,6 +44,9 @@ export default defineConfig<'vite'>(async (merge, { command, mode }) => {
       }
     },
     h5: {
+      sassLoaderOption: {
+        silenceDeprecations: ['legacy-js-api', 'import', 'global-builtin']
+      },
       publicPath: '/',
       staticDirectory: 'static',
 
