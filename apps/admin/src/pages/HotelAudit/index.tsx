@@ -27,8 +27,9 @@ import {
   StopOutlined,
   PlayCircleOutlined
 } from '@ant-design/icons';
-import { hotelApi, POLICY_TYPE_OPTIONS, getCategoryLabel } from '@/api/hotel';
-import type { HotelProject, HotelFormData, HotelStatus } from '@/api/hotel';
+import { hotelApi } from '@/api/hotel';
+import { POLICY_TYPE_OPTIONS, getCategoryLabel } from '@/constants';
+import type { HotelProject, HotelFormData, HotelStatus } from '@/types';
 
 // 状态标签映射
 const statusMap: Record<string, { color: string; text: string }> = {

@@ -27,7 +27,8 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 
-import { hotelApi, type HotelProject, type HotelStatus, type HotelType } from '@/api';
+import { hotelApi } from '@/api/hotel';
+import type { HotelProject, HotelStatus, HotelType } from '@/types';
 import { RpcError } from '@/utils/rpc';
 
 const { Text } = Typography;
