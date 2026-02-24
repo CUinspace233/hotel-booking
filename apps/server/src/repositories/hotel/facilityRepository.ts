@@ -25,6 +25,7 @@ class FacilityRepository {
       facilityCode: string;
       facilityName: string;
       facilityCategory?: string;
+      description?: string;
       isFree?: boolean;
     }>,
     version: string = 'draft'
@@ -40,6 +41,7 @@ class FacilityRepository {
         facilityCode: f.facilityCode,
         facilityName: f.facilityName,
         facilityCategory: f.facilityCategory || 'general',
+        description: f.description || null,
         isFree: f.isFree ?? true
       }))
     });

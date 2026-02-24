@@ -14,7 +14,8 @@ import {
   Select,
   Modal,
   Tag,
-  message
+  message,
+  Tabs
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -24,12 +25,22 @@ import {
   DeleteOutlined,
   SendOutlined
 } from '@ant-design/icons';
-import { hotelApi, POLICY_TYPE_OPTIONS, getPolicyNameByType } from '@/api/hotel';
+import {
+  hotelApi,
+  POLICY_TYPE_OPTIONS,
+  getPolicyNameByType,
+  FACILITY_CATEGORIES,
+  FACILITY_OPTIONS_BY_CATEGORY,
+  isPresetCategory,
+  getCategoryLabel
+} from '@/api/hotel';
 import type {
   HotelFormData,
   FrontendRoomDetail,
   FrontendPolicyDetail,
-  PolicyType
+  FrontendFacilityDetail,
+  PolicyType,
+  FacilityCategory
 } from '@/api/hotel';
 
 const { Title } = Typography;
@@ -80,6 +91,9 @@ const HotelDetail: React.FC = () => {
   // 政策详情状态
   const [policyDetails, setPolicyDetails] = useState<FrontendPolicyDetail[]>([]);
 
+  // 设施详情状态
+  const [facilityDetails, setFacilityDetails] = useState<FrontendFacilityDetail[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -111,6 +125,7 @@ const HotelDetail: React.FC = () => {
         setHotelData(formData);
         setRoomDetails(formData.roomDetails);
         setPolicyDetails(formData.policies);
+        setFacilityDetails(formData.facilities || []);
         form.setFieldsValue(formData);
       } catch (error) {
         console.error('获取酒店数据失败:', error);
@@ -311,6 +326,139 @@ const HotelDetail: React.FC = () => {
     );
   };
 
+  // 获取已添加的分类列表（去重）
+  const getSelectedCategories = (): string[] => {
+    const categories = facilityDetails.map((f) => f.category);
+    return [...new Set(categories)];
+  };
+
+  // 添加分类弹窗状态
+  const [addCategoryModalVisible, setAddCategoryModalVisible] = useState(false);
+  const [customCategoryName, setCustomCategoryName] = useState('');
+  const [selectedPresetCategory, setSelectedPresetCategory] = useState<string>('');
+
+  // 添加设施弹窗状态
+  const [addFacilityModalVisible, setAddFacilityModalVisible] = useState(false);
+  const [addFacilityCategory, setAddFacilityCategory] = useState<string>('');
+  const [selectedPresetFacility, setSelectedPresetFacility] = useState<string>('');
+  const [customFacilityName, setCustomFacilityName] = useState('');
+  const [customFacilityDesc, setCustomFacilityDesc] = useState('');
+
+  // 打开添加分类弹窗
+  const handleOpenAddCategory = () => {
+    setSelectedPresetCategory('');
+    setCustomCategoryName('');
+    setAddCategoryModalVisible(true);
+  };
+
+  // 确认添加分类
+  const handleConfirmAddCategory = () => {
+    let categoryValue = selectedPresetCategory;
+    if (selectedPresetCategory === 'custom') {
+      if (!customCategoryName.trim()) {
+        message.warning('请输入自定义分类名称');
+        return;
+      }
+      categoryValue = customCategoryName.trim();
+    }
+    if (!categoryValue) {
+      message.warning('请选择或输入分类');
+      return;
+    }
+    const existingCategories = getSelectedCategories();
+    if (existingCategories.includes(categoryValue)) {
+      message.warning('该分类已存在');
+      return;
+    }
+    setAddCategoryModalVisible(false);
+    setAddFacilityCategory(categoryValue);
+    setAddFacilityModalVisible(true);
+  };
+
+  // 删除分类（删除该分类下所有设施）
+  const handleDeleteCategory = (category: string) => {
+    setFacilityDetails(facilityDetails.filter((f) => f.category !== category));
+  };
+
+  // 打开添加设施弹窗
+  const handleOpenAddFacility = (category: string) => {
+    setAddFacilityCategory(category);
+    setSelectedPresetFacility('');
+    setCustomFacilityName('');
+    setCustomFacilityDesc('');
+    setAddFacilityModalVisible(true);
+  };
+
+  // 确认添加设施
+  const handleConfirmAddFacility = () => {
+    let facilityCode = selectedPresetFacility;
+    let facilityName = '';
+
+    if (selectedPresetFacility === 'custom' || !isPresetCategory(addFacilityCategory)) {
+      if (!customFacilityName.trim()) {
+        message.warning('请输入设施名称');
+        return;
+      }
+      facilityCode = `custom_${Date.now()}`;
+      facilityName = customFacilityName.trim();
+    } else {
+      if (!selectedPresetFacility) {
+        message.warning('请选择设施');
+        return;
+      }
+      const options = FACILITY_OPTIONS_BY_CATEGORY[addFacilityCategory as FacilityCategory];
+      const option = options?.find((o) => o.value === selectedPresetFacility);
+      facilityName = option?.label || selectedPresetFacility;
+    }
+
+    const newFacility: FrontendFacilityDetail = {
+      id: `new_${Date.now()}_${Math.random()}`,
+      category: addFacilityCategory,
+      facilityCode,
+      facilityName,
+      description: customFacilityDesc.trim() || undefined
+    };
+    setFacilityDetails([...facilityDetails, newFacility]);
+    setAddFacilityModalVisible(false);
+  };
+
+  // 删除单个设施
+  const handleDeleteFacility = (id: string) => {
+    setFacilityDetails(facilityDetails.filter((f) => f.id !== id));
+  };
+
+  // 保存设施信息
+  const submitHotelFacilities = async () => {
+    if (!hotelId) return;
+
+    const emptyFacilities = facilityDetails.filter((f) => !f.facilityName.trim());
+    if (emptyFacilities.length > 0) {
+      message.warning('请填写所有设施的名称');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const facilitiesData = facilityDetails.map((f) => ({
+        facilityCode: f.facilityCode,
+        facilityName: f.facilityName,
+        facilityCategory: f.category,
+        description: f.description || undefined
+      }));
+      await hotelApi.updateFacilities(hotelId, facilitiesData);
+      message.success('设施信息保存成功');
+    } catch (error: unknown) {
+      console.error('保存设施失败:', error);
+      const errMsg =
+        error && typeof error === 'object' && 'message' in error
+          ? String((error as { message: string }).message)
+          : '保存设施失败';
+      message.error(errMsg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // 保存政策信息
   const submitHotelPolicies = async () => {
     if (!hotelId) return;
@@ -497,100 +645,336 @@ const HotelDetail: React.FC = () => {
         </div>
       </Card>
 
-      {/* 设施政策卡片 */}
-      <Card
-        title="设施政策"
-        loading={loading}
-        style={{ marginBottom: 24 }}
-        extra={
-          !isViewMode && (
-            <Button type="primary" loading={saving} onClick={submitHotelPolicies}>
-              保存政策
-            </Button>
-          )
-        }
-      >
-        {/* 添加政策按钮 - 只在编辑模式下显示 */}
-        {!isViewMode && (
-          <div style={{ marginBottom: 16 }}>
-            <Button
-              type="dashed"
-              onClick={handleAddPolicy}
-              style={{ width: '100%' }}
-              icon={<PlusOutlined />}
-            >
-              添加政策
-            </Button>
-          </div>
-        )}
+      {/* 设施与政策卡片 */}
+      <Card title="设施与政策" loading={loading} style={{ marginBottom: 24 }}>
+        <Tabs
+          defaultActiveKey="facilities"
+          items={[
+            {
+              key: 'facilities',
+              label: '设施服务',
+              children: (
+                <div>
+                  {/* 已添加的分类标签 */}
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ marginBottom: 8, color: '#666', fontWeight: 500 }}>
+                      已添加分类：
+                    </div>
+                    <Space wrap size={[8, 8]}>
+                      {getSelectedCategories().map((cat) => (
+                        <Tag
+                          key={cat}
+                          color="blue"
+                          closable={!isViewMode}
+                          onClose={() => handleDeleteCategory(cat)}
+                          style={{ padding: '4px 8px', fontSize: 14 }}
+                        >
+                          {getCategoryLabel(cat)}
+                        </Tag>
+                      ))}
+                      {!isViewMode && (
+                        <Tag
+                          onClick={handleOpenAddCategory}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: 14,
+                            cursor: 'pointer',
+                            borderStyle: 'dashed'
+                          }}
+                        >
+                          <PlusOutlined /> 添加分类
+                        </Tag>
+                      )}
+                    </Space>
+                  </div>
 
-        {/* 政策详情卡片列表 */}
-        {policyDetails.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#999', padding: '20px 0' }}>
-            暂无政策，请点击"添加政策"按钮添加
-          </div>
-        ) : (
-          policyDetails.map((policy) => (
-            <Card
-              key={policy.id}
-              size="small"
-              style={{ marginBottom: 12 }}
-              title="政策详情"
-              extra={
-                !isViewMode && (
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleRemovePolicy(policy.id)}
-                  >
-                    删除
-                  </Button>
-                )
-              }
-            >
-              <Row gutter={16}>
-                <Col span={8}>
-                  <div style={{ marginBottom: 8, color: '#666' }}>政策类型</div>
-                  <Select
-                    style={{ width: '100%' }}
-                    value={policy.policyType}
-                    disabled={isViewMode}
-                    onChange={(value) => handlePolicyChange(policy.id, 'policyType', value)}
-                    options={POLICY_TYPE_OPTIONS}
-                  />
-                </Col>
-                <Col span={16}>
-                  <div style={{ marginBottom: 8, color: '#666' }}>政策名称</div>
-                  {policy.policyType === 'other' ? (
-                    <Input
-                      placeholder="请输入自定义政策名称"
-                      value={policy.policyName}
-                      disabled={isViewMode}
-                      onChange={(e) => handlePolicyChange(policy.id, 'policyName', e.target.value)}
-                    />
+                  {/* 按分类展示设施 */}
+                  {getSelectedCategories().length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#999', padding: '20px 0' }}>
+                      暂无设施，请点击"添加分类"按钮开始添加
+                    </div>
                   ) : (
-                    <Input value={policy.policyName} disabled />
+                    getSelectedCategories().map((cat) => (
+                      <div key={cat} style={{ marginBottom: 24 }}>
+                        <div
+                          style={{
+                            fontWeight: 500,
+                            marginBottom: 12,
+                            color: '#333',
+                            borderBottom: '1px solid #f0f0f0',
+                            paddingBottom: 8,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <span>▼ {getCategoryLabel(cat)}</span>
+                        </div>
+                        <Space wrap size={[8, 8]}>
+                          {facilityDetails
+                            .filter((f) => f.category === cat)
+                            .map((facility) => (
+                              <Tag
+                                key={facility.id}
+                                color="green"
+                                closable={!isViewMode}
+                                onClose={() => handleDeleteFacility(facility.id)}
+                                style={{ padding: '4px 8px', fontSize: 14 }}
+                              >
+                                {facility.facilityName}
+                                {facility.description && (
+                                  <span style={{ color: '#999', marginLeft: 4 }}>
+                                    ({facility.description})
+                                  </span>
+                                )}
+                              </Tag>
+                            ))}
+                          {!isViewMode && (
+                            <Tag
+                              onClick={() => handleOpenAddFacility(cat)}
+                              style={{
+                                padding: '4px 8px',
+                                fontSize: 14,
+                                cursor: 'pointer',
+                                borderStyle: 'dashed'
+                              }}
+                            >
+                              <PlusOutlined /> 添加设施
+                            </Tag>
+                          )}
+                        </Space>
+                      </div>
+                    ))
                   )}
-                </Col>
-              </Row>
-              <Row gutter={16} style={{ marginTop: 12 }}>
-                <Col span={24}>
-                  <div style={{ marginBottom: 8, color: '#666' }}>政策内容</div>
-                  <Input.TextArea
-                    placeholder="请输入政策内容"
-                    value={policy.policyContent}
-                    disabled={isViewMode}
-                    rows={2}
-                    maxLength={500}
-                    showCount
-                    onChange={(e) => handlePolicyChange(policy.id, 'policyContent', e.target.value)}
-                  />
-                </Col>
-              </Row>
-            </Card>
-          ))
-        )}
+
+                  {/* 保存按钮 */}
+                  {!isViewMode && facilityDetails.length > 0 && (
+                    <div style={{ textAlign: 'right', marginTop: 16 }}>
+                      <Button type="primary" loading={saving} onClick={submitHotelFacilities}>
+                        保存设施
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* 添加分类弹窗 */}
+                  <Modal
+                    title="添加设施分类"
+                    open={addCategoryModalVisible}
+                    onOk={handleConfirmAddCategory}
+                    onCancel={() => setAddCategoryModalVisible(false)}
+                    okText="下一步"
+                    cancelText="取消"
+                  >
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ marginBottom: 8 }}>选择预设分类：</div>
+                      <Select
+                        style={{ width: '100%' }}
+                        placeholder="请选择分类"
+                        value={selectedPresetCategory}
+                        onChange={(v) => {
+                          setSelectedPresetCategory(v);
+                          if (v !== 'custom') setCustomCategoryName('');
+                        }}
+                        options={[
+                          ...FACILITY_CATEGORIES.filter(
+                            (c) => !getSelectedCategories().includes(c.value)
+                          ).map((c) => ({ value: c.value, label: c.label })),
+                          { value: 'custom', label: '其它设施（自定义）' }
+                        ]}
+                      />
+                    </div>
+                    {selectedPresetCategory === 'custom' && (
+                      <div>
+                        <div style={{ marginBottom: 8 }}>自定义分类名称：</div>
+                        <Input
+                          placeholder="请输入自定义分类名称"
+                          value={customCategoryName}
+                          onChange={(e) => setCustomCategoryName(e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </Modal>
+
+                  {/* 添加设施弹窗 */}
+                  <Modal
+                    title={`添加${getCategoryLabel(addFacilityCategory)}设施`}
+                    open={addFacilityModalVisible}
+                    onOk={handleConfirmAddFacility}
+                    onCancel={() => setAddFacilityModalVisible(false)}
+                    okText="确定"
+                    cancelText="取消"
+                  >
+                    {isPresetCategory(addFacilityCategory) ? (
+                      <>
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ marginBottom: 8 }}>选择设施：</div>
+                          <Select
+                            style={{ width: '100%' }}
+                            placeholder="请选择设施"
+                            value={selectedPresetFacility}
+                            onChange={(v) => {
+                              setSelectedPresetFacility(v);
+                              if (v !== 'custom') setCustomFacilityName('');
+                            }}
+                            options={[
+                              ...(
+                                FACILITY_OPTIONS_BY_CATEGORY[
+                                  addFacilityCategory as FacilityCategory
+                                ] || []
+                              )
+                                .filter(
+                                  (o) =>
+                                    !facilityDetails.some(
+                                      (f) =>
+                                        f.category === addFacilityCategory &&
+                                        f.facilityCode === o.value
+                                    )
+                                )
+                                .map((o) => ({ value: o.value, label: o.label })),
+                              { value: 'custom', label: '自定义设施' }
+                            ]}
+                          />
+                        </div>
+                        {selectedPresetFacility === 'custom' && (
+                          <div style={{ marginBottom: 16 }}>
+                            <div style={{ marginBottom: 8 }}>设施名称：</div>
+                            <Input
+                              placeholder="请输入设施名称"
+                              value={customFacilityName}
+                              onChange={(e) => setCustomFacilityName(e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ marginBottom: 16 }}>
+                        <div style={{ marginBottom: 8 }}>设施名称：</div>
+                        <Input
+                          placeholder="请输入设施名称"
+                          value={customFacilityName}
+                          onChange={(e) => setCustomFacilityName(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ marginBottom: 8 }}>设施描述（可选）：</div>
+                      <Input.TextArea
+                        placeholder="如营业时间、位置说明等"
+                        value={customFacilityDesc}
+                        onChange={(e) => setCustomFacilityDesc(e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                  </Modal>
+                </div>
+              )
+            },
+            {
+              key: 'policies',
+              label: '酒店政策',
+              children: (
+                <div>
+                  {/* 添加政策按钮 - 只在编辑模式下显示 */}
+                  {!isViewMode && (
+                    <div style={{ marginBottom: 16 }}>
+                      <Button
+                        type="dashed"
+                        onClick={handleAddPolicy}
+                        style={{ width: '100%' }}
+                        icon={<PlusOutlined />}
+                      >
+                        添加政策
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* 政策详情卡片列表 */}
+                  {policyDetails.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#999', padding: '20px 0' }}>
+                      暂无政策，请点击"添加政策"按钮添加
+                    </div>
+                  ) : (
+                    policyDetails.map((policy) => (
+                      <Card
+                        key={policy.id}
+                        size="small"
+                        style={{ marginBottom: 12 }}
+                        title="政策详情"
+                        extra={
+                          !isViewMode && (
+                            <Button
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => handleRemovePolicy(policy.id)}
+                            >
+                              删除
+                            </Button>
+                          )
+                        }
+                      >
+                        <Row gutter={16}>
+                          <Col span={8}>
+                            <div style={{ marginBottom: 8, color: '#666' }}>政策类型</div>
+                            <Select
+                              style={{ width: '100%' }}
+                              value={policy.policyType}
+                              disabled={isViewMode}
+                              onChange={(value) =>
+                                handlePolicyChange(policy.id, 'policyType', value)
+                              }
+                              options={POLICY_TYPE_OPTIONS}
+                            />
+                          </Col>
+                          <Col span={16}>
+                            <div style={{ marginBottom: 8, color: '#666' }}>政策名称</div>
+                            {policy.policyType === 'other' ? (
+                              <Input
+                                placeholder="请输入自定义政策名称"
+                                value={policy.policyName}
+                                disabled={isViewMode}
+                                onChange={(e) =>
+                                  handlePolicyChange(policy.id, 'policyName', e.target.value)
+                                }
+                              />
+                            ) : (
+                              <Input value={policy.policyName} disabled />
+                            )}
+                          </Col>
+                        </Row>
+                        <Row gutter={16} style={{ marginTop: 12 }}>
+                          <Col span={24}>
+                            <div style={{ marginBottom: 8, color: '#666' }}>政策内容</div>
+                            <Input.TextArea
+                              placeholder="请输入政策内容"
+                              value={policy.policyContent}
+                              disabled={isViewMode}
+                              rows={2}
+                              maxLength={500}
+                              showCount
+                              onChange={(e) =>
+                                handlePolicyChange(policy.id, 'policyContent', e.target.value)
+                              }
+                            />
+                          </Col>
+                        </Row>
+                      </Card>
+                    ))
+                  )}
+
+                  {/* 保存政策按钮 */}
+                  {!isViewMode && policyDetails.length > 0 && (
+                    <div style={{ textAlign: 'right', marginTop: 16 }}>
+                      <Button type="primary" loading={saving} onClick={submitHotelPolicies}>
+                        保存政策
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            }
+          ]}
+        />
       </Card>
 
       {/* 酒店房型信息卡片 */}

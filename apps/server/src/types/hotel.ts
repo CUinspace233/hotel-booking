@@ -110,6 +110,7 @@ export interface HotelFacilityItem {
   facilityCode: string;
   facilityName: string;
   facilityCategory?: string;
+  description?: string;
   isFree?: boolean;
 }
 
