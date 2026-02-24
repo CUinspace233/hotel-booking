@@ -45,15 +45,17 @@ class HotelDetailService {
 
   /**
    * 添加酒店设施（批量覆盖）
+   * 若草稿详情不存在则先创建，再写入设施
    */
   async setFacilities(hotelId: string, facilities: HotelFacilityItem[]) {
-    // 检查详情是否存在
-    const detail = await hotelDetailRepository.findByHotelId(hotelId);
+    const version = 'draft';
+    let detail = await hotelDetailRepository.findByHotelId(hotelId, version);
     if (!detail) {
-      throw new ServiceError('酒店详情不存在，请先创建酒店', 404);
+      // 详情不存在时先 upsert 空详情，避免因历史数据或新建流程未创建 detail 导致保存失败
+      await hotelDetailRepository.upsert(hotelId, {}, version);
     }
 
-    const count = await facilityRepository.addHotelFacilities(hotelId, facilities);
+    const count = await facilityRepository.addHotelFacilities(hotelId, facilities, version);
     return { count };
   }
 
