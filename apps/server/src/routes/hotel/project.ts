@@ -20,6 +20,7 @@ router.use(authMiddleware);
  * POST   /api/hotel/projects/:hotelId/sync-draft - 同步已发布数据到草稿
  * PUT    /api/hotel/projects/:hotelId/offline - 下线酒店（管理员）
  * PUT    /api/hotel/projects/:hotelId/online - 恢复上线（管理员）
+ * PUT    /api/hotel/projects/:hotelId/withdraw-review - 撤回审核
  */
 
 // 获取项目列表
@@ -48,6 +49,9 @@ router.put('/:hotelId/offline', HotelProjectController.setOffline);
 
 // 恢复上线（管理员）
 router.put('/:hotelId/online', HotelProjectController.setOnline);
+
+// 撤回审核
+router.put('/:hotelId/withdraw-review', HotelProjectController.withdrawReview);
 
 // 删除项目
 router.delete('/:hotelId', HotelProjectController.delete);
