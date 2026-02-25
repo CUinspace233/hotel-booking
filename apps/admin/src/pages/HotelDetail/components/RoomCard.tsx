@@ -186,7 +186,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, isViewMode, onRoomChange, onR
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>房间大小</label>
             <Input
-              placeholder="请输入房间大小（如：30㎡）"
+              placeholder="请输入房间大小（如：30）"
               value={room.roomSize}
               onChange={(e) => onRoomChange(room.id, 'roomSize', e.target.value)}
               disabled={isViewMode}

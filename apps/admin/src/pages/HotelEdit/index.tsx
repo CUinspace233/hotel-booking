@@ -143,7 +143,7 @@ const HotelEdit: React.FC = () => {
               提交审核
             </Button>
           )}
-          {(record.status === 'draft' || record.status === 'rejected') && (
+          {record.status === 'draft' && (
             <Popconfirm title="确定要删除此酒店吗？" onConfirm={() => handleDelete(record.hotelId)}>
               <Button type="link" size="small" danger icon={<DeleteOutlined />}>
                 删除
