@@ -1,0 +1,126 @@
+.booking-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+
+  &__mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  &__sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    padding: 32px 32px calc(32px + env(safe-area-inset-bottom));
+    animation: slideUp 0.25s ease-out;
+  }
+
+  &__section {
+    padding: 20px 0;
+  }
+
+  &__city {
+    font-size: 34px;
+    font-weight: 700;
+    color: #222;
+  }
+
+  &__line {
+    height: 2px;
+    background: #f0f0f0;
+  }
+
+  // 日期行
+  &__date-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__date-left {
+    display: flex;
+    align-items: center;
+    flex: 1;
+  }
+
+  &__date-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__date-main {
+    font-size: 32px;
+    font-weight: 700;
+    color: #222;
+  }
+
+  &__date-tag {
+    font-size: 24px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  &__date-sep {
+    font-size: 28px;
+    color: #ccc;
+    margin: 0 24px;
+  }
+
+  &__nights {
+    font-size: 26px;
+    color: #0088ff;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+
+  // 间数/人数行
+  &__room-row {
+    display: flex;
+    align-items: center;
+    gap: 48px;
+  }
+
+  &__room-item {
+    font-size: 30px;
+    color: #333;
+    font-weight: 500;
+  }
+
+  // 确定按钮
+  &__btn {
+    background: linear-gradient(to right, #0088ff, #0066dd);
+    border-radius: 48px;
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__btn-text {
+    font-size: 32px;
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
