@@ -24,6 +24,11 @@ dist/
 dist-ssr/
 *.local
 
+# Database
+*.db
+*.db-journal
+*.db-wal
+
 # Environment variables
 .env
 .env.local

@@ -22,7 +22,17 @@ npm install -g pnpm
 pnpm install
 ```
 
-### 2. 启动开发环境
+### 2. 后端初始化（首次克隆项目时需执行）
+
+在启动后端服务前，需要生成 Prisma Client 并同步数据库结构（数据库文件已纳入 .gitignore，首次需创建）：
+
+```bash
+cd apps/server
+pnpm prisma:generate
+pnpm prisma:push
+```
+
+### 3. 启动开发环境
 
 #### 移动端 (C端 - 原生小程序 / React + Taro)
 
