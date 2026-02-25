@@ -26,6 +26,8 @@ export interface PublicHotelListItem {
   hotelType: string | null;
   coverImage: string | null;
   starRating: number | null;
+  score: number | null;
+  reviewCount: number | null;
   city: string | null;
   district: string | null;
   address: string | null;
@@ -101,7 +103,7 @@ class PublicHotelService {
     // 查询总数
     const total = await prisma.hotelProject.count({ where: baseWhere });
 
-    // 查询列表（含 published detail + rooms + facilities）
+    // 查询列表（含 published detail + rooms + facilities + stats）
     const projects = await prisma.hotelProject.findMany({
       where: baseWhere,
       skip,
@@ -116,7 +118,8 @@ class PublicHotelService {
         rooms: {
           where: { version: 'published', isDeleted: false },
           select: { basePrice: true }
-        }
+        },
+        stats: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -135,6 +138,8 @@ class PublicHotelService {
         hotelType: project.hotelType,
         coverImage: detail?.coverImage || null,
         starRating: detail?.starRating || null,
+        score: project.stats?.score ?? null,
+        reviewCount: project.stats?.reviewCount ?? null,
         city: detail?.city || null,
         district: detail?.district || null,
         address: detail?.address || null,
@@ -160,7 +165,7 @@ class PublicHotelService {
     } else if (sortBy === 'price_desc') {
       list.sort((a, b) => (b.minPrice ?? 0) - (a.minPrice ?? 0));
     } else if (sortBy === 'rating_desc') {
-      list.sort((a, b) => (b.starRating ?? 0) - (a.starRating ?? 0));
+      list.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     }
 
     return {

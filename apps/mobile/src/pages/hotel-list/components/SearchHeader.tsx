@@ -54,7 +54,7 @@ function SearchHeader({ filters, onFiltersChange }: SearchHeaderProps) {
       <View className="search-header__bar">
         {/* 城市 */}
         <View className="search-header__city" onClick={handleOpenModal}>
-          <Text className="search-header__city-name">{filters.city || '全城'}</Text>
+          <Text className="search-header__city-name">{filters.city || '全国'}</Text>
         </View>
 
         <View className="search-header__divider" />

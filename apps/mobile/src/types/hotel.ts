@@ -9,6 +9,8 @@ export interface HotelListItem {
   hotelType: string | null;
   coverImage: string | null;
   starRating: number | null;
+  score: number | null;
+  reviewCount: number | null;
   city: string | null;
   district: string | null;
   address: string | null;
