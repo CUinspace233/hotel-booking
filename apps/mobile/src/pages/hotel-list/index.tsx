@@ -7,8 +7,8 @@ import type { HotelListItem, FilterState, HotelListParams } from '../../types/ho
 
 import './index.scss';
 
-// 是否使用 Mock 数据（开发阶段设为 true）
-const USE_MOCK = true;
+// 是否使用 Mock 数据
+const USE_MOCK = false;
 
 // 默认每页数量
 const PAGE_SIZE = 10;

@@ -39,8 +39,8 @@ const TYPE_OPTIONS = [
 // 排序选项
 const SORT_OPTIONS: { label: string; value: FilterState['sortBy'] }[] = [
   { label: '默认排序', value: 'default' },
-  { label: '价格从低到高', value: 'price_asc' },
-  { label: '价格从高到低', value: 'price_desc' },
+  { label: '低价优先', value: 'price_asc' },
+  { label: '高价优先', value: 'price_desc' },
   { label: '评分优先', value: 'rating_desc' }
 ];
 

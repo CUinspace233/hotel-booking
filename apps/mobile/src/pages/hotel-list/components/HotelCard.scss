@@ -101,8 +101,9 @@
   &__score-badge {
     background: #1a73e8;
     border-radius: 6px;
-    padding: 2px 8px;
-    line-height: 1;
+    padding: 4px 8px 4px;
+    display: flex;
+    align-items: center;
   }
 
   &__score-num {

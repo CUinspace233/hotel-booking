@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, Input } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import useDebounce from '../../hooks/useDebounce';
+import { getHotelList } from '../../services/api';
 import { getMockSearchSuggestions } from '../../constants/mock';
 import type { SearchSuggestionItem } from '../../types/hotel';
 
@@ -56,12 +57,35 @@ function SearchPage() {
     let cancelled = false;
     setLoading(true);
 
-    getMockSearchSuggestions(debouncedKeyword).then((list) => {
-      if (!cancelled) {
-        setResults(list);
-        setLoading(false);
+    (async () => {
+      try {
+        // 调用真实 API 搜索
+        const res = await getHotelList({ keyword: debouncedKeyword, pageSize: 20 });
+        if (!cancelled) {
+          setResults(
+            res.list.map((h) => ({
+              hotelId: h.hotelId,
+              name: h.name ?? '',
+              city: h.city ?? '',
+              district: h.district ?? '',
+              address: h.address ?? '',
+              minPrice: h.minPrice,
+              starRating: h.starRating
+            }))
+          );
+        }
+      } catch {
+        // API 不可用时降级到 mock
+        const list = await getMockSearchSuggestions(debouncedKeyword);
+        if (!cancelled) {
+          setResults(list);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-    });
+    })();
 
     return () => {
       cancelled = true;

@@ -54,6 +54,7 @@ model HotelProject {
   user        User          @relation(fields: [creatorId], references: [id])
   details     HotelDetail[] // 1:N 关联详情（支持多版本）
   rooms       HotelRoom[]   // 1:N 关联房型
+  stats       HotelStats?   // 1:1 统计数据
 
   @@map("hotel_projects")
 }
@@ -241,4 +242,17 @@ model RoomImage {
   room      HotelRoom @relation(fields: [roomId], references: [roomId])
 
   @@map("room_images")
+}
+
+// ===================== 酒店统计表 =====================
+model HotelStats {
+  id          Int      @id @default(autoincrement())
+  hotelId     String   @unique @map("hotel_id")
+  score       Float    @default(0)          // 综合评分（如 4.8）
+  reviewCount Int      @default(0) @map("review_count") // 评论总数
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project     HotelProject @relation(fields: [hotelId], references: [hotelId])
+
+  @@map("hotel_stats")
 }

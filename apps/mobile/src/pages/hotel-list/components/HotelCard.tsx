@@ -97,12 +97,20 @@ function HotelCard({ hotel }: HotelCardProps) {
         </View>
 
         {/* 评分 */}
-        {hotel.starRating && (
+        {hotel.score != null && hotel.score > 0 && (
           <View className="hotel-card__score-row">
             <View className="hotel-card__score-badge">
-              <Text className="hotel-card__score-num">4.8</Text>
+              <Text className="hotel-card__score-num">{hotel.score.toFixed(1)}</Text>
             </View>
-            <Text className="hotel-card__score-label">超棒</Text>
+            <Text className="hotel-card__score-label">
+              {hotel.score >= 4.8
+                ? '超棒'
+                : hotel.score >= 4.5
+                  ? '很好'
+                  : hotel.score >= 4.0
+                    ? '不错'
+                    : '尚可'}
+            </Text>
           </View>
         )}
 
