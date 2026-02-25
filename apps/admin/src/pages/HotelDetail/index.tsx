@@ -16,7 +16,13 @@ import {
   message,
   Tabs
 } from 'antd';
-import { ArrowLeftOutlined, HomeOutlined, EditOutlined, SendOutlined } from '@ant-design/icons';
+import {
+  ArrowLeftOutlined,
+  HomeOutlined,
+  EditOutlined,
+  SendOutlined,
+  SaveOutlined
+} from '@ant-design/icons';
 import { hotelApi } from '@/api/hotel';
 import type {
   HotelFormData,
@@ -59,6 +65,7 @@ const HotelDetail: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingAll, setSavingAll] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const statusConfig: Record<string, { text: string; color: string }> = {
@@ -243,6 +250,24 @@ const HotelDetail: React.FC = () => {
     });
   };
 
+  // 一键保存：依次执行各卡片的保存
+  const handleSaveAll = async () => {
+    if (!hotelId) return;
+
+    setSavingAll(true);
+    try {
+      await handleSaveBasicInfo();
+      await submitHotelFacilities();
+      await submitHotelPolicies();
+      await submitHotelRoomTypes();
+      message.success('全部保存成功');
+    } catch (error) {
+      // 各保存方法内部已有错误提示
+    } finally {
+      setSavingAll(false);
+    }
+  };
+
   const handleWithdrawReview = () => {
     if (!hotelId) return;
 
@@ -318,6 +343,7 @@ const HotelDetail: React.FC = () => {
     } catch (error) {
       console.error('保存失败:', error);
       message.error('保存失败');
+      throw error;
     } finally {
       setSaving(false);
     }
@@ -360,6 +386,7 @@ const HotelDetail: React.FC = () => {
     } catch (error) {
       console.error('保存房型失败:', error);
       message.error('保存房型失败');
+      throw error;
     } finally {
       setSaving(false);
     }
@@ -392,6 +419,7 @@ const HotelDetail: React.FC = () => {
           ? String((error as { message: string }).message)
           : '保存设施失败';
       message.error(errMsg);
+      throw error;
     } finally {
       setSaving(false);
     }
@@ -425,6 +453,7 @@ const HotelDetail: React.FC = () => {
     } catch (error) {
       console.error('保存政策失败:', error);
       message.error('保存政策失败');
+      throw error;
     } finally {
       setSaving(false);
     }
@@ -456,6 +485,11 @@ const HotelDetail: React.FC = () => {
           )}
         </Space>
         <Space>
+          {!isViewMode && (
+            <Button icon={<SaveOutlined />} onClick={handleSaveAll} loading={savingAll}>
+              保存
+            </Button>
+          )}
           {!isViewMode && canSubmitForReview && (
             <Button
               type="primary"
@@ -560,8 +594,8 @@ const HotelDetail: React.FC = () => {
 
           <Row gutter={24}>
             <Col span={12}>
-              <Form.Item label="酒店状态" name="status">
-                <Input placeholder="酒店状态" disabled />
+              <Form.Item label="审核状态" name="status">
+                <Input placeholder="审核状态" disabled />
               </Form.Item>
             </Col>
           </Row>
