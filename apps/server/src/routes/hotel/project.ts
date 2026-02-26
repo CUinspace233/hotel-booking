@@ -8,19 +8,18 @@ const router: IRouter = Router();
 router.use(authMiddleware);
 
 /**
- * 酒店项目路由
+ * 酒店项目路由（商户编辑用）
  *
- * GET    /api/hotel/projects          - 获取项目列表
+ * GET    /api/hotel/projects          - 获取项目列表（仅自己的）
  * GET    /api/hotel/projects/:hotelId - 获取单个项目
  * POST   /api/hotel/projects          - 创建项目
  * PUT    /api/hotel/projects/:hotelId - 更新项目
  * PUT    /api/hotel/projects/:hotelId/status - 更新项目状态
  * DELETE /api/hotel/projects/:hotelId - 删除项目
- * POST   /api/hotel/projects/:hotelId/publish - 发布草稿
  * POST   /api/hotel/projects/:hotelId/sync-draft - 同步已发布数据到草稿
- * PUT    /api/hotel/projects/:hotelId/offline - 下线酒店（管理员）
- * PUT    /api/hotel/projects/:hotelId/online - 恢复上线（管理员）
  * PUT    /api/hotel/projects/:hotelId/withdraw-review - 撤回审核
+ *
+ * 注：publish/offline/online 已迁移至 /api/audit/projects
  */
 
 // 获取项目列表
@@ -38,17 +37,8 @@ router.put('/:hotelId', HotelProjectController.update);
 // 更新项目状态
 router.put('/:hotelId/status', HotelProjectController.updateStatus);
 
-// 发布草稿（将 draft 同步为 published）
-router.post('/:hotelId/publish', HotelProjectController.publishDraft);
-
 // 同步已发布数据到草稿（用于开始编辑已发布酒店）
 router.post('/:hotelId/sync-draft', HotelProjectController.syncDraft);
-
-// 下线酒店（管理员）
-router.put('/:hotelId/offline', HotelProjectController.setOffline);
-
-// 恢复上线（管理员）
-router.put('/:hotelId/online', HotelProjectController.setOnline);
 
 // 撤回审核
 router.put('/:hotelId/withdraw-review', HotelProjectController.withdrawReview);

@@ -423,15 +423,6 @@ export const hotelApi = {
   // ===================== 版本管理相关 API =====================
 
   /**
-   * 发布草稿（将 draft 数据同步为 published）
-   * 用于审核通过后发布
-   * @param hotelId 酒店业务ID
-   */
-  publishDraft(hotelId: string): Promise<{ success: boolean }> {
-    return rpc.post<{ success: boolean }>(`/hotel/projects/${hotelId}/publish`, {});
-  },
-
-  /**
    * 同步已发布数据到草稿（用于已发布酒店开始编辑）
    * @param hotelId 酒店业务ID
    */
@@ -445,25 +436,6 @@ export const hotelApi = {
    */
   submitSecondaryReview(hotelId: string): Promise<HotelProject> {
     return rpc.put<HotelProject>(`/hotel/projects/${hotelId}/status`, { status: 'pending_update' });
-  },
-
-  // ===================== 上下线管理相关 API =====================
-
-  /**
-   * 下线酒店（管理员操作）
-   * @param hotelId 酒店业务ID
-   * @param reason 下线原因（可选）
-   */
-  setOffline(hotelId: string, reason?: string): Promise<HotelProject> {
-    return rpc.put<HotelProject>(`/hotel/projects/${hotelId}/offline`, { reason });
-  },
-
-  /**
-   * 恢复上线（管理员操作）
-   * @param hotelId 酒店业务ID
-   */
-  setOnline(hotelId: string): Promise<HotelProject> {
-    return rpc.put<HotelProject>(`/hotel/projects/${hotelId}/online`, {});
   }
 };
 

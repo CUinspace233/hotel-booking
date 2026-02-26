@@ -214,7 +214,12 @@ class HotelProjectService {
     const where: Prisma.HotelProjectWhereInput = {};
 
     if (filters.status) {
-      where.status = filters.status;
+      if (filters.status === 'all') {
+        // 全部项目：包含待审核、二次审核、已通过、已驳回、已下线（不含草稿）
+        where.status = { in: ['pending', 'pending_update', 'approved', 'rejected', 'offline'] };
+      } else {
+        where.status = filters.status;
+      }
     }
 
     if (filters.keyword) {

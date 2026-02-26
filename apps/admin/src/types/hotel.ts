@@ -241,7 +241,7 @@ export interface UpdateHotelProjectParams {
 export interface HotelProjectListParams {
   page?: number;
   pageSize?: number;
-  status?: HotelStatus;
+  status?: HotelStatus | 'all';
   keyword?: string;
 }
 

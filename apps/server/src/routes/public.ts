@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import { Router, type IRouter } from 'express';
 import { PublicController } from '../controllers/publicController';
 
-const router = Router();
+const router: IRouter = Router();
 
 // C 端酒店列表（分页，支持筛选）
 router.get('/hotels', PublicController.hotelList);
