@@ -121,8 +121,8 @@ const Login: React.FC = () => {
           </Radio.Button>
         </Radio.Group>
       </Form.Item>
-      <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]}>
-        <Input prefix={<UserOutlined />} placeholder="用户名" />
+      <Form.Item name="username" rules={[{ required: true, message: '请输入用户名或手机号' }]}>
+        <Input prefix={<UserOutlined />} placeholder="用户名或手机号" />
       </Form.Item>
       <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
         <Input.Password prefix={<LockOutlined />} placeholder="密码" />

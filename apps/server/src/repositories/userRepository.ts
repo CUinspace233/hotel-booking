@@ -73,6 +73,17 @@ class UserRepository {
   }
 
   /**
+   * 根据用户名或手机号查找用户
+   */
+  async findByUsernameOrPhone(account: string): Promise<User | null> {
+    return prisma.user.findFirst({
+      where: {
+        OR: [{ username: account }, { phone: account }]
+      }
+    });
+  }
+
+  /**
    * 创建新用户
    */
   async create(data: CreateUserParams): Promise<User> {

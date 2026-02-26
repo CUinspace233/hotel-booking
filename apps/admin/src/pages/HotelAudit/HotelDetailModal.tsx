@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Modal, Button, Space, Tag, Descriptions, Spin, Row, Col, Empty, Card } from 'antd';
-import { AuditOutlined } from '@ant-design/icons';
+import { AuditOutlined, PictureOutlined } from '@ant-design/icons';
 import { auditApi } from '@/api/audit';
+import { getFullImageUrl } from '@/api/upload';
 import { POLICY_TYPE_OPTIONS, getCategoryLabel } from '@/constants';
 import type { HotelProject, HotelFormData } from '@/types';
 
@@ -122,6 +123,83 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({ open, hotel, onClos
                   : '-'}
             </Descriptions.Item>
           </Descriptions>
+
+          {/* 酒店图片 */}
+          <SectionTitle style={{ marginTop: 24 }}>酒店图片</SectionTitle>
+          {detail.coverImage || (detail.images && detail.images.length > 0) ? (
+            <Row gutter={16}>
+              {detail.coverImage && (
+                <Col span={8}>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      <PictureOutlined style={{ marginRight: 8 }} />
+                      酒店主图
+                    </div>
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        paddingTop: '75%',
+                        border: '1px solid #d9d9d9',
+                        borderRadius: 8,
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <img
+                        src={getFullImageUrl(detail.coverImage)}
+                        alt="酒店主图"
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </Col>
+              )}
+              {detail.images && detail.images.length > 0 && (
+                <Col span={detail.coverImage ? 16 : 24}>
+                  <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                    <PictureOutlined style={{ marginRight: 8 }} />
+                    酒店图集 ({detail.images.length} 张)
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                    {detail.images.map((url, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          width: 120,
+                          height: 90,
+                          border: '1px solid #d9d9d9',
+                          borderRadius: 4,
+                          overflow: 'hidden',
+                          flexShrink: 0
+                        }}
+                      >
+                        <img
+                          src={getFullImageUrl(url)}
+                          alt={`酒店图片${index + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block'
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </Col>
+              )}
+            </Row>
+          ) : (
+            <Empty description="暂无图片" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          )}
 
           {/* 设施服务 */}
           <SectionTitle style={{ marginTop: 24 }}>设施服务</SectionTitle>

@@ -57,8 +57,8 @@ class UserService {
       throw new ServiceError('用户名或密码错误');
     }
 
-    // 查找用户
-    const user = await userRepository.findByUsername(username);
+    // 查找用户（支持用户名或手机号）
+    const user = await userRepository.findByUsernameOrPhone(username);
     if (!user) {
       throw new ServiceError('用户名或密码错误');
     }
