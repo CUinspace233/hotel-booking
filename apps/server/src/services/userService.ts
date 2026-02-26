@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import type { User } from '.prisma/client';
 import { userRepository, CreateUserParams, UserRole } from '../repositories/userRepository';
 import { generateTokenPair, JwtPayload, TokenPair } from '../utils/jwt';
+import { decryptPassword } from '../utils/rsa';
 
 // 登录参数
 export interface LoginParams {
@@ -49,6 +50,13 @@ class UserService {
   async login(params: LoginParams): Promise<LoginResult> {
     const { username, password, role } = params;
 
+    let plainPassword: string;
+    try {
+      plainPassword = decryptPassword(password);
+    } catch {
+      throw new ServiceError('用户名或密码错误');
+    }
+
     // 查找用户
     const user = await userRepository.findByUsername(username);
     if (!user) {
@@ -56,7 +64,7 @@ class UserService {
     }
 
     // 验证密码
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(plainPassword, user.password);
     if (!isPasswordValid) {
       throw new ServiceError('用户名或密码错误');
     }
@@ -94,6 +102,17 @@ class UserService {
   async register(params: RegisterParams): Promise<Omit<User, 'password'>> {
     const { username, password, email, phone, role } = params;
 
+    let plainPassword: string;
+    try {
+      plainPassword = decryptPassword(password);
+    } catch {
+      throw new ServiceError('密码格式错误');
+    }
+
+    if (plainPassword.length < 6 || plainPassword.length > 20) {
+      throw new ServiceError('密码长度需在6-20个字符之间');
+    }
+
     // 检查用户名是否已存在
     const existingUser = await userRepository.findByUsername(username);
     if (existingUser) {
@@ -116,7 +135,7 @@ class UserService {
 
     // 密码加密
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(plainPassword, salt);
 
     // 创建用户
     const createParams: CreateUserParams = {
@@ -149,20 +168,33 @@ class UserService {
    * 修改密码
    */
   async changePassword(userId: number, oldPassword: string, newPassword: string): Promise<boolean> {
+    let plainOldPassword: string;
+    let plainNewPassword: string;
+    try {
+      plainOldPassword = decryptPassword(oldPassword);
+      plainNewPassword = decryptPassword(newPassword);
+    } catch {
+      throw new ServiceError('密码格式错误');
+    }
+
+    if (plainNewPassword.length < 6 || plainNewPassword.length > 20) {
+      throw new ServiceError('新密码长度需在6-20个字符之间');
+    }
+
     const user = await userRepository.findById(userId);
     if (!user) {
       throw new ServiceError('用户不存在', 404);
     }
 
     // 验证旧密码
-    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(plainOldPassword, user.password);
     if (!isPasswordValid) {
       throw new ServiceError('原密码错误');
     }
 
     // 加密新密码
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    const hashedPassword = await bcrypt.hash(plainNewPassword, salt);
 
     // 更新密码
     await userRepository.update(userId, { password: hashedPassword });
