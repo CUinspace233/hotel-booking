@@ -2,12 +2,21 @@ import { Request, Response } from 'express';
 import { userService, ServiceError, LoginParams, RegisterParams } from '../services/userService';
 import { ResponseUtil } from '../utils/response';
 import { setTokenCookies, clearTokenCookies, AuthenticatedRequest } from '../middlewares/auth';
+import { getPublicKey } from '../utils/rsa';
 
 /**
  * 用户控制器（Controller）
  * 负责处理 HTTP 请求，参数校验，调用 Service 层
  */
 class UserController {
+  /**
+   * 获取 RSA 公钥（供前端加密密码）
+   * GET /api/auth/public-key
+   */
+  async getPublicKey(req: Request, res: Response): Promise<Response> {
+    return ResponseUtil.success(res, { publicKey: getPublicKey() });
+  }
+
   /**
    * 用户登录
    * POST /api/auth/login
@@ -77,11 +86,7 @@ class UserController {
         return ResponseUtil.error(res, '用户名长度需在3-20个字符之间');
       }
 
-      // 密码格式校验
-      if (password.length < 6 || password.length > 20) {
-        return ResponseUtil.error(res, '密码长度需在6-20个字符之间');
-      }
-
+      // 密码为前端 RSA 加密后的密文，长度校验在 Service 层解密后进行
       // 邮箱格式校验（可选，如果填写了则验证格式）
       if (email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -149,10 +154,7 @@ class UserController {
         return ResponseUtil.error(res, '原密码和新密码不能为空');
       }
 
-      if (newPassword.length < 6 || newPassword.length > 20) {
-        return ResponseUtil.error(res, '新密码长度需在6-20个字符之间');
-      }
-
+      // 密码为前端 RSA 加密后的密文，长度校验在 Service 层解密后进行
       await userService.changePassword(userId, oldPassword, newPassword);
 
       // 修改密码成功后，清除 Cookie，要求重新登录

@@ -1,4 +1,5 @@
 import { rpc } from '@/utils/rpc';
+import { encryptPassword } from '@/utils/crypto';
 import type {
   LoginParams,
   LoginResult,
@@ -8,24 +9,48 @@ import type {
   ChangePasswordParams
 } from '@/types';
 
+/** 公钥缓存（进程内，页面刷新后重新获取） */
+let cachedPublicKey: string | null = null;
+
+async function getPublicKey(): Promise<string> {
+  if (cachedPublicKey) return cachedPublicKey;
+  const data = await rpc.get<{ publicKey: string }>('/auth/public-key', undefined, {
+    skipAuth: true
+  });
+  cachedPublicKey = data.publicKey;
+  return cachedPublicKey;
+}
+
 /**
  * 认证相关 API
  */
 export const authApi = {
   /**
-   * 用户登录
+   * 用户登录（密码在前端 RSA 加密后传输）
    * @param params 登录参数
    */
-  login(params: LoginParams): Promise<LoginResult> {
-    return rpc.post<LoginResult>('/auth/login', params, { skipAuth: true });
+  async login(params: LoginParams): Promise<LoginResult> {
+    const publicKey = await getPublicKey();
+    const encryptedParams = {
+      ...params,
+      password: await encryptPassword(params.password, publicKey)
+    };
+    return rpc.post<LoginResult>('/auth/login', encryptedParams, { skipAuth: true });
   },
 
   /**
-   * 用户注册
+   * 用户注册（密码在前端 RSA 加密后传输）
    * @param params 注册参数
    */
-  register(params: RegisterParams): Promise<RegisterResult> {
-    return rpc.post<RegisterResult>('/auth/register', params, { skipAuth: true });
+  async register(params: RegisterParams): Promise<RegisterResult> {
+    const publicKey = await getPublicKey();
+    const encryptedParams = {
+      ...params,
+      password: await encryptPassword(params.password, publicKey)
+    };
+    return rpc.post<RegisterResult>('/auth/register', encryptedParams, {
+      skipAuth: true
+    });
   },
 
   /**
@@ -36,11 +61,16 @@ export const authApi = {
   },
 
   /**
-   * 修改密码
+   * 修改密码（密码在前端 RSA 加密后传输）
    * @param params 修改密码参数
    */
-  changePassword(params: ChangePasswordParams): Promise<null> {
-    return rpc.put<null>('/auth/password', params);
+  async changePassword(params: ChangePasswordParams): Promise<null> {
+    const publicKey = await getPublicKey();
+    const encryptedParams = {
+      oldPassword: await encryptPassword(params.oldPassword, publicKey),
+      newPassword: await encryptPassword(params.newPassword, publicKey)
+    };
+    return rpc.put<null>('/auth/password', encryptedParams);
   }
 };
 
