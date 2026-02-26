@@ -65,6 +65,7 @@ app.listen(PORT, () => {
   console.log(`📋 API 文档: http://localhost:${PORT}/api`);
   console.log('========================================');
   console.log('可用接口:');
+  console.log('  GET  /api/auth/public-key - 获取RSA公钥');
   console.log('  POST /api/auth/login    - 用户登录');
   console.log('  POST /api/auth/logout   - 用户登出');
   console.log('  POST /api/auth/register - 用户注册');

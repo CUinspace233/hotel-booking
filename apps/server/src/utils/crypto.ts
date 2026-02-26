@@ -1,5 +1,51 @@
 import crypto from 'crypto';
 
+// ============ RSA 密码传输加密（前端加密、后端解密）============
+
+const RSA_KEY_SIZE = 2048;
+let cachedRsaKeyPair: { publicKey: string; privateKey: string } | null = null;
+
+/**
+ * 获取 RSA 密钥对（服务端启动时生成，内存缓存）
+ */
+export function getRsaKeyPair(): { publicKey: string; privateKey: string } {
+  if (cachedRsaKeyPair) return cachedRsaKeyPair;
+
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: RSA_KEY_SIZE,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+  });
+  cachedRsaKeyPair = { publicKey, privateKey };
+  return cachedRsaKeyPair;
+}
+
+/**
+ * 解密前端 RSA-OAEP 加密的密码
+ * @param encryptedBase64 前端加密后的 Base64 字符串
+ * @returns 解密后的明文密码，失败返回 null
+ */
+export function decryptPassword(encryptedBase64: string): string | null {
+  try {
+    const { privateKey } = getRsaKeyPair();
+    const buf = Buffer.from(encryptedBase64, 'base64');
+    const decrypted = crypto.privateDecrypt(
+      {
+        key: privateKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: 'sha256'
+      },
+      buf
+    );
+    return decrypted.toString('utf8');
+  } catch (error) {
+    console.error('Password decryption failed:', error);
+    return null;
+  }
+}
+
+// ============ AES Cookie Token 加密 ============
+
 // 加密算法
 const ALGORITHM = 'aes-256-gcm';
 // IV 长度

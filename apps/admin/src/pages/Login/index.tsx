@@ -6,6 +6,7 @@ import { useUserStore, type UserRole } from '@/store';
 import { authApi } from '@/api/auth';
 import type { LoginParams, RegisterParams } from '@/types';
 import { RpcError } from '@/utils/rpc';
+import { encryptPassword } from '@/utils/passwordCrypto';
 import './index.css';
 
 // 登录表单数据类型
@@ -37,9 +38,10 @@ const Login: React.FC = () => {
   const handleLogin = async (values: LoginFormData) => {
     setLoading(true);
     try {
+      const encryptedPassword = await encryptPassword(values.password);
       const params: LoginParams = {
         username: values.username,
-        password: values.password,
+        password: encryptedPassword,
         role: values.role
       };
 
@@ -72,9 +74,10 @@ const Login: React.FC = () => {
   const handleRegister = async (values: RegisterFormData) => {
     setLoading(true);
     try {
+      const encryptedPassword = await encryptPassword(values.password);
       const params: RegisterParams = {
         username: values.username,
-        password: values.password,
+        password: encryptedPassword,
         email: values.email || undefined, // 邮箱可选
         phone: values.phone,
         role: values.role

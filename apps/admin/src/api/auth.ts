@@ -37,7 +37,7 @@ export const authApi = {
 
   /**
    * 修改密码
-   * @param params 修改密码参数
+   * @param params 修改密码参数（oldPassword、newPassword 需先用 encryptPassword 加密）
    */
   changePassword(params: ChangePasswordParams): Promise<null> {
     return rpc.put<null>('/auth/password', params);

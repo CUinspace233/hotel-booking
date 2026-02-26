@@ -8,6 +8,9 @@ const router: IRouter = Router();
  * 认证相关路由
  */
 
+// 获取 RSA 公钥（用于前端密码加密）- 无需认证
+router.get('/public-key', (req, res) => userController.getPublicKey(req, res));
+
 // 用户登录 - 无需认证
 router.post('/login', (req, res) => userController.login(req, res));
 

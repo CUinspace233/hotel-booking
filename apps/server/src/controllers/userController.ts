@@ -2,12 +2,22 @@ import { Request, Response } from 'express';
 import { userService, ServiceError, LoginParams, RegisterParams } from '../services/userService';
 import { ResponseUtil } from '../utils/response';
 import { setTokenCookies, clearTokenCookies, AuthenticatedRequest } from '../middlewares/auth';
+import { getRsaKeyPair, decryptPassword } from '../utils/crypto.js';
 
 /**
  * 用户控制器（Controller）
  * 负责处理 HTTP 请求，参数校验，调用 Service 层
  */
 class UserController {
+  /**
+   * 获取 RSA 公钥（用于前端加密密码）
+   * GET /api/auth/public-key
+   */
+  getPublicKey(_req: Request, res: Response): Response {
+    const { publicKey } = getRsaKeyPair();
+    return ResponseUtil.success(res, { publicKey });
+  }
+
   /**
    * 用户登录
    * POST /api/auth/login
@@ -26,7 +36,12 @@ class UserController {
         return ResponseUtil.error(res, '角色类型无效');
       }
 
-      const params: LoginParams = { username, password, role };
+      const decryptedPassword = decryptPassword(password);
+      if (!decryptedPassword) {
+        return ResponseUtil.error(res, '密码数据异常，请重试');
+      }
+
+      const params: LoginParams = { username, password: decryptedPassword, role };
       const result = await userService.login(params);
 
       // 设置加密后的 Token 到 Cookie
@@ -77,8 +92,13 @@ class UserController {
         return ResponseUtil.error(res, '用户名长度需在3-20个字符之间');
       }
 
-      // 密码格式校验
-      if (password.length < 6 || password.length > 20) {
+      const decryptedPassword = decryptPassword(password);
+      if (!decryptedPassword) {
+        return ResponseUtil.error(res, '密码数据异常，请重试');
+      }
+
+      // 密码格式校验（解密后）
+      if (decryptedPassword.length < 6 || decryptedPassword.length > 20) {
         return ResponseUtil.error(res, '密码长度需在6-20个字符之间');
       }
 
@@ -101,7 +121,7 @@ class UserController {
         return ResponseUtil.error(res, '角色类型无效');
       }
 
-      const params: RegisterParams = { username, password, email, phone, role };
+      const params: RegisterParams = { username, password: decryptedPassword, email, phone, role };
       const user = await userService.register(params);
 
       return ResponseUtil.success(res, user, '注册成功');
@@ -149,11 +169,17 @@ class UserController {
         return ResponseUtil.error(res, '原密码和新密码不能为空');
       }
 
-      if (newPassword.length < 6 || newPassword.length > 20) {
+      const decryptedOldPassword = decryptPassword(oldPassword);
+      const decryptedNewPassword = decryptPassword(newPassword);
+      if (!decryptedOldPassword || !decryptedNewPassword) {
+        return ResponseUtil.error(res, '密码数据异常，请重试');
+      }
+
+      if (decryptedNewPassword.length < 6 || decryptedNewPassword.length > 20) {
         return ResponseUtil.error(res, '新密码长度需在6-20个字符之间');
       }
 
-      await userService.changePassword(userId, oldPassword, newPassword);
+      await userService.changePassword(userId, decryptedOldPassword, decryptedNewPassword);
 
       // 修改密码成功后，清除 Cookie，要求重新登录
       clearTokenCookies(res);
