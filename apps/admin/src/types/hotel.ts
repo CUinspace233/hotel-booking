@@ -213,6 +213,7 @@ export interface HotelFormData {
   starRating: number;
   openingYear?: number;
   description: string;
+  coverImage?: string;
   images: string[];
   roomTypes: string[];
   facilities: FrontendFacilityDetail[];

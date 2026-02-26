@@ -28,7 +28,7 @@ class UserController {
 
       // 参数校验
       if (!username || !password || !role) {
-        return ResponseUtil.error(res, '用户名、密码和角色不能为空');
+        return ResponseUtil.error(res, '用户名/手机号、密码和角色不能为空');
       }
 
       if (!['admin', 'merchant'].includes(role)) {

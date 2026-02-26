@@ -49,6 +49,7 @@ export function transformToFormData(fullInfo: any): HotelFormData {
     starRating: detail?.starRating || 0,
     openingYear: detail?.openingYear ?? undefined,
     description: detail?.description || '',
+    coverImage: detail?.coverImage || '',
     images: images.map((img: HotelImage) => img.imageUrl),
     roomTypes: [...new Set(rooms.map((r: RoomDetail) => r.roomType).filter(Boolean))] as string[],
     facilities: facilities.map((f: HotelFacility) => ({

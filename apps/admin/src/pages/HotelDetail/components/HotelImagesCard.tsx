@@ -202,7 +202,7 @@ const HotelImagesCard: React.FC<HotelImagesCardProps> = ({ hotelId, isViewMode, 
                   overflow: 'hidden'
                 }}
               >
-                <Image
+                <img
                   src={getFullImageUrl(coverImage)}
                   alt="酒店主图"
                   style={{
@@ -211,9 +211,12 @@ const HotelImagesCard: React.FC<HotelImagesCardProps> = ({ hotelId, isViewMode, 
                     left: 0,
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover'
+                    objectFit: 'cover',
+                    display: 'block'
                   }}
-                  fallback={IMAGE_FALLBACK}
+                  onError={(e) => {
+                    e.currentTarget.src = IMAGE_FALLBACK;
+                  }}
                 />
                 {!isViewMode && (
                   <Popconfirm
