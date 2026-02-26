@@ -4,3 +4,4 @@
 
 export { authApi } from './auth';
 export { hotelApi } from './hotel';
+export { auditApi } from './audit';

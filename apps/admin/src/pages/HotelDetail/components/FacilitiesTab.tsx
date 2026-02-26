@@ -65,7 +65,17 @@ const FacilitiesTab: React.FC<FacilitiesTabProps> = ({
     }
     setAddCategoryModalVisible(false);
     setAddFacilityCategory(categoryValue);
+    setSelectedPresetFacility('');
+    setCustomFacilityName('');
+    setCustomFacilityDesc('');
     setAddFacilityModalVisible(true);
+  };
+
+  const handleCloseAddFacilityModal = () => {
+    setAddFacilityModalVisible(false);
+    setSelectedPresetFacility('');
+    setCustomFacilityName('');
+    setCustomFacilityDesc('');
   };
 
   const handleDeleteCategory = (category: string) => {
@@ -109,7 +119,7 @@ const FacilitiesTab: React.FC<FacilitiesTabProps> = ({
       description: customFacilityDesc.trim() || undefined
     };
     onFacilitiesChange([...facilities, newFacility]);
-    setAddFacilityModalVisible(false);
+    handleCloseAddFacilityModal();
   };
 
   const handleDeleteFacility = (id: string) => {
@@ -261,7 +271,7 @@ const FacilitiesTab: React.FC<FacilitiesTabProps> = ({
         title={`添加${getCategoryLabel(addFacilityCategory)}设施`}
         open={addFacilityModalVisible}
         onOk={handleConfirmAddFacility}
-        onCancel={() => setAddFacilityModalVisible(false)}
+        onCancel={handleCloseAddFacilityModal}
         okText="确定"
         cancelText="取消"
       >

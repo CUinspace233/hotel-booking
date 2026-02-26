@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal, Button, Space, Tag, Descriptions, Spin, Row, Col, Empty, Card } from 'antd';
 import { AuditOutlined } from '@ant-design/icons';
-import { hotelApi } from '@/api/hotel';
+import { auditApi } from '@/api/audit';
 import { POLICY_TYPE_OPTIONS, getCategoryLabel } from '@/constants';
 import type { HotelProject, HotelFormData } from '@/types';
 
@@ -35,7 +35,7 @@ const HotelDetailModal: React.FC<HotelDetailModalProps> = ({ open, hotel, onClos
   const loadDetail = async (hotelId: string) => {
     setLoading(true);
     try {
-      const formData = await hotelApi.getFormData(hotelId);
+      const formData = await auditApi.getFormData(hotelId);
       setDetail(formData);
     } catch (error) {
       console.error('获取酒店详情失败:', error);

@@ -18,10 +18,11 @@ export class HotelProjectController {
       const { page = '1', pageSize = '10', status, keyword } = req.query;
       const authReq = req as AuthenticatedRequest;
 
+      // 编辑页列表：仅商户可访问，只看自己创建的项目
       const result = await hotelProjectService.getList({
         page: parseInt(page as string, 10),
         pageSize: parseInt(pageSize as string, 10),
-        status: status as HotelStatus | undefined,
+        status: (status as import('../../types/hotel').HotelStatus | 'all') || undefined,
         keyword: keyword as string | undefined,
         creatorId: authReq.userId
       });
@@ -171,25 +172,6 @@ export class HotelProjectController {
   }
 
   /**
-   * 发布草稿（将 draft 同步为 published）
-   * POST /api/hotel/projects/:hotelId/publish
-   */
-  static async publishDraft(req: Request, res: Response) {
-    try {
-      const hotelId = req.params.hotelId as string;
-
-      const result = await hotelVersionService.publishDraft(hotelId);
-      return ResponseUtil.success(res, result, '发布成功');
-    } catch (err) {
-      if (err instanceof ServiceError) {
-        return ResponseUtil.error(res, err.message, err.code);
-      }
-      console.error('[HotelProjectController.publishDraft] Error:', err);
-      return ResponseUtil.serverError(res, '发布失败');
-    }
-  }
-
-  /**
    * 同步已发布数据到草稿（用于开始编辑已发布酒店）
    * POST /api/hotel/projects/:hotelId/sync-draft
    */
@@ -205,51 +187,6 @@ export class HotelProjectController {
       }
       console.error('[HotelProjectController.syncDraft] Error:', err);
       return ResponseUtil.serverError(res, '同步失败');
-    }
-  }
-
-  /**
-   * 下线酒店（管理员操作）
-   * PUT /api/hotel/projects/:hotelId/offline
-   */
-  static async setOffline(req: Request, res: Response) {
-    try {
-      const hotelId = req.params.hotelId as string;
-      const { reason } = req.body;
-
-      const project = await hotelProjectService.updateStatus(hotelId, 'offline');
-
-      // 如果提供了下线原因，更新到 remark 字段
-      if (reason) {
-        await hotelProjectService.update(hotelId, { remark: `下线原因: ${reason}` });
-      }
-
-      return ResponseUtil.success(res, project, '下线成功');
-    } catch (err) {
-      if (err instanceof ServiceError) {
-        return ResponseUtil.error(res, err.message, err.code);
-      }
-      console.error('[HotelProjectController.setOffline] Error:', err);
-      return ResponseUtil.serverError(res, '下线失败');
-    }
-  }
-
-  /**
-   * 恢复上线（管理员操作）
-   * PUT /api/hotel/projects/:hotelId/online
-   */
-  static async setOnline(req: Request, res: Response) {
-    try {
-      const hotelId = req.params.hotelId as string;
-
-      const project = await hotelProjectService.updateStatus(hotelId, 'approved');
-      return ResponseUtil.success(res, project, '恢复上线成功');
-    } catch (err) {
-      if (err instanceof ServiceError) {
-        return ResponseUtil.error(res, err.message, err.code);
-      }
-      console.error('[HotelProjectController.setOnline] Error:', err);
-      return ResponseUtil.serverError(res, '恢复上线失败');
     }
   }
 

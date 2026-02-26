@@ -23,8 +23,8 @@ import {
   StopOutlined,
   PlayCircleOutlined
 } from '@ant-design/icons';
-import { hotelApi } from '@/api/hotel';
-import type { HotelProject, HotelStatus } from '@/types';
+import { auditApi } from '@/api/audit';
+import type { HotelProject } from '@/types';
 import HotelDetailModal from './HotelDetailModal';
 
 // 状态标签映射
@@ -39,6 +39,7 @@ const statusMap: Record<string, { color: string; text: string }> = {
 
 // 筛选状态选项
 const filterStatusOptions = [
+  { value: 'all', label: '全部项目' },
   { value: 'pending', label: '待审核' },
   { value: 'approved', label: '已通过' },
   { value: 'offline', label: '已下线' },
@@ -53,57 +54,29 @@ const HotelAudit: React.FC = () => {
   const [offlineVisible, setOfflineVisible] = useState(false);
   const [currentHotel, setCurrentHotel] = useState<HotelProject | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [filterStatus, setFilterStatus] = useState<HotelStatus | 'pending'>('pending');
+  const [filterStatus, setFilterStatus] = useState<
+    'all' | 'pending' | 'approved' | 'offline' | 'rejected'
+  >('all');
   const [form] = Form.useForm();
   const [offlineForm] = Form.useForm();
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
-  // 加载酒店列表
+  // 加载酒店列表（使用审核 API）
   const loadHotels = useCallback(async () => {
     setLoading(true);
     try {
-      // 如果筛选待审核，需要合并首次审核和二次审核
-      if (filterStatus === 'pending') {
-        const [pendingResult, pendingUpdateResult] = await Promise.all([
-          hotelApi.getList({
-            status: 'pending',
-            page: pagination.current,
-            pageSize: pagination.pageSize,
-            keyword: searchKeyword || undefined
-          }),
-          hotelApi.getList({
-            status: 'pending_update',
-            page: pagination.current,
-            pageSize: pagination.pageSize,
-            keyword: searchKeyword || undefined
-          })
-        ]);
+      const result = await auditApi.getList({
+        status: filterStatus,
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        keyword: searchKeyword || undefined
+      });
 
-        const combinedList = [...pendingResult.list, ...pendingUpdateResult.list].sort((a, b) => {
-          const timeA = a.submitTime || a.createdAt;
-          const timeB = b.submitTime || b.createdAt;
-          return new Date(timeB).getTime() - new Date(timeA).getTime();
-        });
-
-        setDataSource(combinedList);
-        setPagination((prev) => ({
-          ...prev,
-          total: pendingResult.pagination.total + pendingUpdateResult.pagination.total
-        }));
-      } else {
-        const result = await hotelApi.getList({
-          status: filterStatus,
-          page: pagination.current,
-          pageSize: pagination.pageSize,
-          keyword: searchKeyword || undefined
-        });
-
-        setDataSource(result.list);
-        setPagination((prev) => ({
-          ...prev,
-          total: result.pagination.total
-        }));
-      }
+      setDataSource(result.list);
+      setPagination((prev) => ({
+        ...prev,
+        total: result.pagination.total
+      }));
     } catch (error) {
       console.error('获取酒店列表失败:', error);
       message.error('获取酒店列表失败');
@@ -136,15 +109,10 @@ const HotelAudit: React.FC = () => {
     if (!currentHotel) return;
 
     try {
-      // 对于二次审核的酒店，需要发布草稿
-      if (currentHotel.status === 'pending_update') {
-        await hotelApi.publishDraft(currentHotel.hotelId);
-        message.success('审核通过，修改已发布');
-      } else {
-        // 首次审核通过后也需要发布草稿
-        await hotelApi.publishDraft(currentHotel.hotelId);
-        message.success('审核通过');
-      }
+      await auditApi.approve(currentHotel.hotelId);
+      message.success(
+        currentHotel.status === 'pending_update' ? '审核通过，修改已发布' : '审核通过'
+      );
       setAuditVisible(false);
       loadHotels();
     } catch (error) {
@@ -163,7 +131,7 @@ const HotelAudit: React.FC = () => {
     }
 
     try {
-      await hotelApi.updateStatus(currentHotel.hotelId, 'rejected');
+      await auditApi.reject(currentHotel.hotelId, values.remark);
       message.success('已驳回');
       setAuditVisible(false);
       loadHotels();
@@ -186,7 +154,7 @@ const HotelAudit: React.FC = () => {
     const values = await offlineForm.validateFields();
 
     try {
-      await hotelApi.setOffline(currentHotel.hotelId, values.reason);
+      await auditApi.setOffline(currentHotel.hotelId, values.reason);
       message.success('下线成功');
       setOfflineVisible(false);
       loadHotels();
@@ -199,7 +167,7 @@ const HotelAudit: React.FC = () => {
   // 恢复上线
   const handleSetOnline = async (record: HotelProject) => {
     try {
-      await hotelApi.setOnline(record.hotelId);
+      await auditApi.setOnline(record.hotelId);
       message.success('恢复上线成功');
       loadHotels();
     } catch (error) {
@@ -215,7 +183,7 @@ const HotelAudit: React.FC = () => {
   };
 
   // 状态筛选变化
-  const handleStatusChange = (value: HotelStatus | 'pending') => {
+  const handleStatusChange = (value: 'all' | 'pending' | 'approved' | 'offline' | 'rejected') => {
     setFilterStatus(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
   };
