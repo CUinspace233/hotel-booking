@@ -38,6 +38,21 @@ class HotelVersionService {
       await tx.hotelImage.deleteMany({
         where: { hotelId, version: 'published' }
       });
+      // 先删除 HotelRoom 的子表（RoomFacility、RoomImage），否则会触发外键约束
+      const publishedRoomIds = (
+        await tx.hotelRoom.findMany({
+          where: { hotelId, version: 'published' },
+          select: { roomId: true }
+        })
+      ).map((r) => r.roomId);
+      if (publishedRoomIds.length > 0) {
+        await tx.roomFacility.deleteMany({
+          where: { roomId: { in: publishedRoomIds } }
+        });
+        await tx.roomImage.deleteMany({
+          where: { roomId: { in: publishedRoomIds } }
+        });
+      }
       await tx.hotelRoom.deleteMany({
         where: { hotelId, version: 'published' }
       });
@@ -228,6 +243,21 @@ class HotelVersionService {
       await tx.hotelImage.deleteMany({
         where: { hotelId, version: 'draft' }
       });
+      // 先删除 HotelRoom 的子表（RoomFacility、RoomImage），否则会触发外键约束
+      const draftRoomIds = (
+        await tx.hotelRoom.findMany({
+          where: { hotelId, version: 'draft' },
+          select: { roomId: true }
+        })
+      ).map((r) => r.roomId);
+      if (draftRoomIds.length > 0) {
+        await tx.roomFacility.deleteMany({
+          where: { roomId: { in: draftRoomIds } }
+        });
+        await tx.roomImage.deleteMany({
+          where: { roomId: { in: draftRoomIds } }
+        });
+      }
       await tx.hotelRoom.deleteMany({
         where: { hotelId, version: 'draft' }
       });
