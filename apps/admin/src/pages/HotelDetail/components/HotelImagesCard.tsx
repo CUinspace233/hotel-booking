@@ -114,26 +114,38 @@ const HotelImagesCard: React.FC<HotelImagesCardProps> = ({ hotelId, isViewMode, 
     try {
       setImageLoading(true);
 
-      let imageUrl = '';
-
       if (uploadMode === 'url') {
-        imageUrl = newImageUrl.trim();
+        const imageUrl = newImageUrl.trim();
+        if (modalType === 'cover') {
+          await hotelApi.updateCoverImage(hotelId, imageUrl);
+          setCoverImage(imageUrl);
+          message.success('主图设置成功');
+        } else {
+          await hotelApi.addHotelImages(hotelId, [{ imageUrl }]);
+          fetchImages();
+          message.success('图片添加成功');
+        }
       } else {
-        // 上传文件
-        const file = fileList[0].originFileObj as File;
-        const result = await uploadApi.uploadImage(file);
-        imageUrl = result.url;
+        const files = fileList
+          .map((f) => f.originFileObj)
+          .filter((f): f is File => f instanceof File);
+
+        if (modalType === 'cover') {
+          const result = await uploadApi.uploadImage(files[0]);
+          await hotelApi.updateCoverImage(hotelId, result.url);
+          setCoverImage(result.url);
+          message.success('主图设置成功');
+        } else {
+          const results = await uploadApi.uploadImages(files);
+          await hotelApi.addHotelImages(
+            hotelId,
+            results.map((r) => ({ imageUrl: r.url }))
+          );
+          fetchImages();
+          message.success(`图片添加成功，共 ${results.length} 张`);
+        }
       }
 
-      if (modalType === 'cover') {
-        await hotelApi.updateCoverImage(hotelId, imageUrl);
-        setCoverImage(imageUrl);
-        message.success('主图设置成功');
-      } else {
-        await hotelApi.addHotelImages(hotelId, [{ imageUrl }]);
-        fetchImages();
-        message.success('图片添加成功');
-      }
       setModalVisible(false);
       setNewImageUrl('');
       setFileList([]);
@@ -406,21 +418,24 @@ const HotelImagesCard: React.FC<HotelImagesCardProps> = ({ hotelId, isViewMode, 
             <Upload.Dragger
               fileList={fileList}
               onChange={({ fileList: newFileList }) => {
-                // 只保留最后一个文件，并设置状态为 done
-                const lastFile = newFileList[newFileList.length - 1];
-                if (lastFile) {
-                  lastFile.status = 'done';
-                  setFileList([lastFile]);
+                if (modalType === 'cover') {
+                  const lastFile = newFileList[newFileList.length - 1];
+                  if (lastFile) {
+                    lastFile.status = 'done';
+                    setFileList([lastFile]);
+                  } else {
+                    setFileList([]);
+                  }
                 } else {
-                  setFileList([]);
+                  setFileList(newFileList.map((f) => ({ ...f, status: 'done' as const })));
                 }
               }}
               beforeUpload={beforeUpload}
               accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-              maxCount={1}
+              maxCount={modalType === 'cover' ? 1 : 10}
+              multiple={modalType === 'gallery'}
               listType="picture"
               customRequest={({ onSuccess }) => {
-                // 阻止默认上传行为，手动控制
                 setTimeout(() => onSuccess?.('ok'), 0);
               }}
             >
@@ -428,7 +443,10 @@ const HotelImagesCard: React.FC<HotelImagesCardProps> = ({ hotelId, isViewMode, 
                 <InboxOutlined />
               </p>
               <p className="ant-upload-text">点击或拖拽图片到此区域上传</p>
-              <p className="ant-upload-hint">支持 JPG、PNG、WebP、GIF 格式，最大 2MB</p>
+              <p className="ant-upload-hint">
+                支持 JPG、PNG、WebP、GIF 格式，最大 2MB
+                {modalType === 'gallery' && '，最多 10 张，可一次性拖入多张'}
+              </p>
             </Upload.Dragger>
           </div>
         ) : (
