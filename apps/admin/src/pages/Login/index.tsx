@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Form, Input, Button, Tabs, message, Radio } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
@@ -6,6 +6,7 @@ import { useUserStore, type UserRole } from '@/store';
 import { authApi } from '@/api/auth';
 import type { LoginParams, RegisterParams } from '@/types';
 import { RpcError } from '@/utils/rpc';
+import { debounce } from '@/utils/helpers';
 import './index.css';
 
 // 登录表单数据类型
@@ -32,6 +33,20 @@ const Login: React.FC = () => {
   const [loginForm] = Form.useForm<LoginFormData>();
   const [registerForm] = Form.useForm<RegisterFormData>();
   const [loading, setLoading] = useState(false);
+
+  // 注册表单防抖校验：停止输入 0.5 秒后再显示格式错误
+  const registerChangedFieldsRef = useRef<Set<string>>(new Set());
+  const debouncedRegisterValidate = useMemo(
+    () =>
+      debounce(() => {
+        const fields = Array.from(registerChangedFieldsRef.current);
+        registerChangedFieldsRef.current.clear();
+        if (fields.length > 0) {
+          registerForm.validateFields(fields).catch(() => {});
+        }
+      }, 300),
+    [registerForm]
+  );
 
   // 处理登录
   const handleLogin = async (values: LoginFormData) => {
@@ -140,6 +155,11 @@ const Login: React.FC = () => {
     <Form
       form={registerForm}
       onFinish={handleRegister}
+      onValuesChange={(changedValues) => {
+        const fieldNames = Object.keys(changedValues);
+        fieldNames.forEach((name) => registerChangedFieldsRef.current.add(name));
+        debouncedRegisterValidate();
+      }}
       size="large"
       autoComplete="off"
       initialValues={{ role: 'merchant' }}
@@ -156,6 +176,7 @@ const Login: React.FC = () => {
       </Form.Item>
       <Form.Item
         name="username"
+        validateTrigger={['onBlur', 'onSubmit']}
         rules={[
           { required: true, message: '请输入用户名' },
           { min: 3, message: '用户名至少3个字符' }
@@ -163,11 +184,16 @@ const Login: React.FC = () => {
       >
         <Input prefix={<UserOutlined />} placeholder="用户名" />
       </Form.Item>
-      <Form.Item name="email" rules={[{ type: 'email', message: '请输入有效的邮箱地址' }]}>
+      <Form.Item
+        name="email"
+        validateTrigger={['onBlur', 'onSubmit']}
+        rules={[{ type: 'email', message: '请输入有效的邮箱地址' }]}
+      >
         <Input prefix={<MailOutlined />} placeholder="邮箱（选填）" />
       </Form.Item>
       <Form.Item
         name="phone"
+        validateTrigger={['onBlur', 'onSubmit']}
         rules={[
           { required: true, message: '请输入手机号' },
           { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' }
@@ -177,6 +203,7 @@ const Login: React.FC = () => {
       </Form.Item>
       <Form.Item
         name="password"
+        validateTrigger={['onBlur', 'onSubmit']}
         rules={[
           { required: true, message: '请输入密码' },
           { min: 6, message: '密码至少6个字符' }
@@ -186,6 +213,7 @@ const Login: React.FC = () => {
       </Form.Item>
       <Form.Item
         name="confirmPassword"
+        validateTrigger={['onBlur', 'onSubmit']}
         dependencies={['password']}
         rules={[
           { required: true, message: '请确认密码' },

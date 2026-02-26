@@ -108,19 +108,22 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, isViewMode, onRoomChange, onR
     try {
       setImageLoading(true);
 
-      let imageUrl = '';
-
       if (uploadMode === 'url') {
-        imageUrl = newImageUrl.trim();
+        const imageUrl = newImageUrl.trim();
+        await hotelApi.addRoomImages(room.id, [{ imageUrl }]);
+        message.success('图片添加成功');
       } else {
-        // 上传文件
-        const file = fileList[0].originFileObj as File;
-        const result = await uploadApi.uploadImage(file);
-        imageUrl = result.url;
+        const files = fileList
+          .map((f) => f.originFileObj)
+          .filter((f): f is File => f instanceof File);
+        const results = await uploadApi.uploadImages(files);
+        await hotelApi.addRoomImages(
+          room.id,
+          results.map((r) => ({ imageUrl: r.url }))
+        );
+        message.success(`图片添加成功，共 ${results.length} 张`);
       }
 
-      await hotelApi.addRoomImages(room.id, [{ imageUrl }]);
-      message.success('图片添加成功');
       setModalVisible(false);
       setNewImageUrl('');
       setFileList([]);
@@ -373,21 +376,14 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, isViewMode, onRoomChange, onR
             <Upload.Dragger
               fileList={fileList}
               onChange={({ fileList: newFileList }) => {
-                // 只保留最后一个文件，并设置状态为 done
-                const lastFile = newFileList[newFileList.length - 1];
-                if (lastFile) {
-                  lastFile.status = 'done';
-                  setFileList([lastFile]);
-                } else {
-                  setFileList([]);
-                }
+                setFileList(newFileList.map((f) => ({ ...f, status: 'done' as const })));
               }}
               beforeUpload={beforeUpload}
               accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-              maxCount={1}
+              maxCount={10}
+              multiple
               listType="picture"
               customRequest={({ onSuccess }) => {
-                // 阻止默认上传行为，手动控制
                 setTimeout(() => onSuccess?.('ok'), 0);
               }}
             >
@@ -395,7 +391,9 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, isViewMode, onRoomChange, onR
                 <InboxOutlined />
               </p>
               <p className="ant-upload-text">点击或拖拽图片到此区域上传</p>
-              <p className="ant-upload-hint">支持 JPG、PNG、WebP、GIF 格式，最大 2MB</p>
+              <p className="ant-upload-hint">
+                支持 JPG、PNG、WebP、GIF 格式，最大 2MB，最多 10 张，可一次性拖入多张
+              </p>
             </Upload.Dragger>
           </div>
         ) : (
