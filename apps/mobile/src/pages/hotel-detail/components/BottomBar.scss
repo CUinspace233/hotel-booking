@@ -1,0 +1,59 @@
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 16px 32px calc(16px + env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+
+  // 左侧价格
+  &__price {
+    display: flex;
+    align-items: baseline;
+  }
+
+  &__price-symbol {
+    font-size: 28px;
+    color: #ff4d4f;
+    font-weight: 600;
+  }
+
+  &__price-value {
+    font-size: 48px;
+    color: #ff4d4f;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  &__price-unit {
+    font-size: 24px;
+    color: #999;
+    margin-left: 4px;
+  }
+
+  &__price-empty {
+    font-size: 28px;
+    color: #999;
+  }
+
+  // 右侧按钮
+  &__btn {
+    background: linear-gradient(135deg, #1a73e8, #0d5bbd);
+    border-radius: 44px;
+    padding: 18px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__btn-text {
+    font-size: 30px;
+    color: #fff;
+    font-weight: 600;
+  }
+}

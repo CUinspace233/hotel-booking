@@ -1,0 +1,154 @@
+.room-card {
+  display: flex;
+  background: #fff;
+  padding: 24px 32px;
+  border-bottom: 2px solid #f0f0f0;
+
+  // 左侧图片
+  &__image-wrapper {
+    position: relative;
+    width: 200px;
+    height: 150px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  &__image-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #a5b4c8, #7e91a8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__image-placeholder-text {
+    font-size: 48px;
+    color: #fff;
+    font-weight: bold;
+    opacity: 0.6;
+  }
+
+  &__image-count {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    padding: 2px 8px;
+  }
+
+  &__image-count-text {
+    font-size: 20px;
+    color: #fff;
+  }
+
+  // 右侧信息
+  &__info {
+    flex: 1;
+    margin-left: 20px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 30px;
+    font-weight: 700;
+    color: #222;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__specs {
+    font-size: 22px;
+    color: #999;
+    margin-top: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__tags {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__tag {
+    background: #f5f5f5;
+    border-radius: 4px;
+    padding: 2px 10px;
+  }
+
+  &__tag-text {
+    font-size: 20px;
+    color: #666;
+  }
+
+  &__breakfast {
+    border-radius: 4px;
+    padding: 2px 10px;
+    background: #f5f5f5;
+
+    &--included {
+      background: #e8f5e9;
+    }
+  }
+
+  &__breakfast-text {
+    font-size: 20px;
+    color: #666;
+  }
+
+  &__breakfast--included &__breakfast-text {
+    color: #4caf50;
+  }
+
+  // 价格行
+  &__price-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+
+  &__price {
+    display: flex;
+    align-items: baseline;
+  }
+
+  &__price-symbol {
+    font-size: 24px;
+    color: #ff4d4f;
+    font-weight: 600;
+  }
+
+  &__price-value {
+    font-size: 40px;
+    color: #ff4d4f;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  &__price-unit {
+    font-size: 20px;
+    color: #999;
+    margin-left: 2px;
+  }
+
+  &__price-empty {
+    font-size: 24px;
+    color: #999;
+  }
+}

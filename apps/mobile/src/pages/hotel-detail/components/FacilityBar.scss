@@ -1,0 +1,29 @@
+.facility-bar {
+  background: #fff;
+  padding: 20px 0 20px 32px;
+  border-top: 2px solid #f0f0f0;
+
+  &__scroll {
+    width: 100%;
+    white-space: nowrap;
+  }
+
+  &__list {
+    display: inline-flex;
+    gap: 16px;
+    padding-right: 32px;
+  }
+
+  &__item {
+    background: #e8f0fe;
+    border-radius: 24px;
+    padding: 8px 20px;
+    flex-shrink: 0;
+  }
+
+  &__item-text {
+    font-size: 24px;
+    color: #1a73e8;
+    white-space: nowrap;
+  }
+}

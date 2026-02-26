@@ -2,8 +2,11 @@ import type {
   HotelListItem,
   HotelListResponse,
   HotelListParams,
-  SearchSuggestionItem
+  SearchSuggestionItem,
+  HotelDetailResponse,
+  HotelRoomInfo
 } from '../types/hotel';
+import { FACILITY_MAP } from '../types/hotel';
 
 // 50 条测试酒店数据
 const MOCK_HOTELS: HotelListItem[] = [
@@ -861,5 +864,187 @@ export function getMockSearchSuggestions(keyword: string): Promise<SearchSuggest
 
       resolve(results);
     }, 150); // 搜索建议延迟更短
+  });
+}
+
+/**
+ * 根据酒店基础信息生成模拟房型数据
+ */
+function generateMockRooms(hotel: HotelListItem): HotelRoomInfo[] {
+  const basePrice = hotel.minPrice ?? 500;
+  const rooms: HotelRoomInfo[] = [
+    {
+      id: 1,
+      roomId: `${hotel.hotelId}-R001`,
+      hotelId: hotel.hotelId,
+      version: 'published',
+      roomName: '高级大床房',
+      roomType: 'standard',
+      bedType: 'queen',
+      bedCount: '1',
+      bedSize: '1.8米',
+      roomSize: '32',
+      floor: '2-4层',
+      windowType: 'window',
+      maxOccupancy: '2',
+      basePrice: basePrice,
+      breakfastType: 'none',
+      breakfastCount: 0,
+      totalCount: 10,
+      availableCount: 5,
+      description: '宽敞明亮的大床房，配备高品质床品',
+      coverImage: '',
+      status: 'active',
+      sortOrder: 0,
+      facilities: [],
+      images: []
+    },
+    {
+      id: 2,
+      roomId: `${hotel.hotelId}-R002`,
+      hotelId: hotel.hotelId,
+      version: 'published',
+      roomName: '豪华双床房',
+      roomType: 'standard',
+      bedType: 'twin',
+      bedCount: '2',
+      bedSize: '1.2米',
+      roomSize: '36',
+      floor: '5-8层',
+      windowType: 'window',
+      maxOccupancy: '2',
+      basePrice: Math.round(basePrice * 1.2),
+      breakfastType: 'none',
+      breakfastCount: 0,
+      totalCount: 8,
+      availableCount: 3,
+      description: '双床房，适合商务出行或亲子入住',
+      coverImage: '',
+      status: 'active',
+      sortOrder: 1,
+      facilities: [],
+      images: []
+    },
+    {
+      id: 3,
+      roomId: `${hotel.hotelId}-R003`,
+      hotelId: hotel.hotelId,
+      version: 'published',
+      roomName: '豪华大床房（含早）',
+      roomType: 'deluxe',
+      bedType: 'king',
+      bedCount: '1',
+      bedSize: '2.0米',
+      roomSize: '40',
+      floor: '9-12层',
+      windowType: 'window',
+      maxOccupancy: '2',
+      basePrice: Math.round(basePrice * 1.5),
+      breakfastType: 'buffet',
+      breakfastCount: 2,
+      totalCount: 6,
+      availableCount: 2,
+      description: '高楼层豪华房，含双份自助早餐',
+      coverImage: '',
+      status: 'active',
+      sortOrder: 2,
+      facilities: [],
+      images: []
+    },
+    {
+      id: 4,
+      roomId: `${hotel.hotelId}-R004`,
+      hotelId: hotel.hotelId,
+      version: 'published',
+      roomName: '行政套房',
+      roomType: 'suite',
+      bedType: 'king',
+      bedCount: '1',
+      bedSize: '2.0米',
+      roomSize: '58',
+      floor: '15-18层',
+      windowType: 'window',
+      maxOccupancy: '2',
+      basePrice: Math.round(basePrice * 2.2),
+      breakfastType: 'buffet',
+      breakfastCount: 2,
+      totalCount: 4,
+      availableCount: 1,
+      description: '行政楼层套房，尊享行政酒廊权益',
+      coverImage: '',
+      status: 'active',
+      sortOrder: 3,
+      facilities: [],
+      images: []
+    }
+  ];
+  return rooms;
+}
+
+/**
+ * 模拟 API 请求 —— 获取酒店详情
+ */
+export function getMockHotelDetail(hotelId: string): Promise<HotelDetailResponse> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const hotel = MOCK_HOTELS.find((h) => h.hotelId === hotelId);
+      if (!hotel) {
+        reject(new Error('酒店不存在'));
+        return;
+      }
+
+      resolve({
+        id: 1,
+        hotelId: hotel.hotelId,
+        name: hotel.name,
+        hotelType: hotel.hotelType,
+        status: 'approved',
+        details: [
+          {
+            id: 1,
+            hotelId: hotel.hotelId,
+            version: 'published',
+            fullName: hotel.name,
+            englishName: null,
+            starRating: hotel.starRating,
+            brand: null,
+            openingYear: 2019,
+            renovationYear: null,
+            totalRooms: null,
+            totalFloors: null,
+            country: '中国',
+            province: null,
+            city: hotel.city,
+            district: hotel.district,
+            address: hotel.address,
+            longitude: null,
+            latitude: null,
+            phone: null,
+            checkInTime: '14:00',
+            checkOutTime: '12:00',
+            description: hotel.description,
+            highlight: null,
+            coverImage: hotel.coverImage,
+            facilities: hotel.facilityCodes.map((code, i) => ({
+              id: i + 1,
+              facilityCode: code,
+              facilityName: FACILITY_MAP[code] || code,
+              facilityCategory: 'general',
+              description: null,
+              isFree: true
+            })),
+            images: [],
+            policies: []
+          }
+        ],
+        rooms: generateMockRooms(hotel),
+        stats: {
+          id: 1,
+          hotelId: hotel.hotelId,
+          score: hotel.score ?? 0,
+          reviewCount: hotel.reviewCount ?? 0
+        }
+      });
+    }, 300);
   });
 }

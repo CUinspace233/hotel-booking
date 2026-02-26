@@ -64,13 +64,6 @@ app.listen(PORT, () => {
   console.log(`📡 地址: http://localhost:${PORT}`);
   console.log(`📋 API 文档: http://localhost:${PORT}/api`);
   console.log('========================================');
-  console.log('可用接口:');
-  console.log('  POST /api/auth/login    - 用户登录');
-  console.log('  POST /api/auth/logout   - 用户登出');
-  console.log('  POST /api/auth/register - 用户注册');
-  console.log('  GET  /api/auth/profile  - 获取用户信息');
-  console.log('  PUT  /api/auth/password - 修改密码');
-  console.log('========================================');
 });
 
 export default app;
