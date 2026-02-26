@@ -1,0 +1,57 @@
+.room-list {
+  background: #fff;
+  margin-top: 16px;
+
+  // 筛选标签行
+  &__filters {
+    padding: 20px 0 20px 32px;
+    border-bottom: 2px solid #f0f0f0;
+    white-space: nowrap;
+  }
+
+  &__filters-inner {
+    display: inline-flex;
+    gap: 16px;
+    padding-right: 32px;
+  }
+
+  &__filter-tag {
+    background: #f5f5f5;
+    border-radius: 28px;
+    padding: 10px 24px;
+    flex-shrink: 0;
+
+    &--active {
+      background: #e8f0fe;
+    }
+  }
+
+  &__filter-text {
+    font-size: 24px;
+    color: #666;
+    white-space: nowrap;
+
+    &--active {
+      color: #1a73e8;
+      font-weight: 600;
+    }
+  }
+
+  // 房型卡片
+  &__cards {
+    // cards are rendered with their own styling
+  }
+
+  // 空状态
+  &__empty {
+    padding: 80px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__empty-text {
+    font-size: 28px;
+    color: #999;
+  }
+}

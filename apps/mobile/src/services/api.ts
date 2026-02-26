@@ -1,5 +1,10 @@
 import Taro from '@tarojs/taro';
-import type { HotelListParams, HotelListResponse, ApiResponse } from '../types/hotel';
+import type {
+  HotelListParams,
+  HotelListResponse,
+  HotelDetailResponse,
+  ApiResponse
+} from '../types/hotel';
 
 // API 基础地址
 const BASE_URL = 'http://localhost:3003/api';
@@ -54,8 +59,8 @@ export async function getHotelList(params: HotelListParams): Promise<HotelListRe
 /**
  * 获取 C 端酒店详情
  */
-export async function getHotelDetail(hotelId: string) {
-  return request({
+export async function getHotelDetail(hotelId: string): Promise<HotelDetailResponse> {
+  return request<HotelDetailResponse>({
     url: `/public/hotels/${hotelId}`,
     method: 'GET'
   });
