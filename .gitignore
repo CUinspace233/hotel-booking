@@ -29,6 +29,9 @@ dist-ssr/
 *.db-journal
 *.db-wal
 
+# Uploaded images
+uploads/
+
 # Environment variables
 .env
 .env.local
