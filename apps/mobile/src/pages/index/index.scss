@@ -1,75 +1,276 @@
-.search-page {
-  padding-bottom: 20px;
-  background: #f5f5f5;
-}
+.home {
+  min-height: 100vh;
+  background: #f5f6fa;
 
-.banner {
-  position: relative;
-}
+  // ========== Banner ==========
+  &__banner {
+    position: relative;
+    width: 100%;
+    height: 560px;
+    background: linear-gradient(135deg, #0a1628 0%, #1a3a6a 40%, #2979c1 75%, #5ba3d9 100%);
+    overflow: hidden;
+  }
 
-.banner image {
-  width: 100%;
-  height: 200px;
-}
+  &__banner-content {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 180px;
+    padding: 0 40px;
+  }
 
-.banner-text {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  color: #fff;
-  font-size: 16px;
-  font-weight: bold;
-}
+  &__banner-title {
+    font-size: 40px;
+    font-weight: 700;
+    color: #fff;
+    display: block;
+    margin-bottom: 8px;
+  }
 
-.search-box {
-  margin: 10px;
-  padding: 15px;
-  background: #fff;
-  border-radius: 8px;
-}
+  &__banner-sub {
+    font-size: 26px;
+    color: rgba(255, 255, 255, 0.75);
+  }
 
-.form-item {
-  margin-bottom: 15px;
-}
+  // ========== Card ==========
+  &__card {
+    margin: -160px 24px 0;
+    position: relative;
+    z-index: 10;
+    background: #fff;
+    border-radius: 32px;
+    padding: 32px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+  }
 
-.label {
-  display: block;
-  font-size: 14px;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
+  // ========== Row1: City + Search ==========
+  &__row-city-search {
+    display: flex;
+    align-items: center;
+    padding-bottom: 28px;
+    border-bottom: 1px solid #f0f0f0;
+  }
 
-.date-box {
-  padding: 8px;
-  background: #f2f2f2;
-  border-radius: 4px;
-}
+  &__city-box {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
 
-.tag-section {
-  margin-bottom: 15px;
-}
+  &__city-icon {
+    font-size: 32px;
+    color: #0086f6;
+    margin-right: 8px;
+  }
 
-.tags {
-  margin-top: 6px;
-}
+  &__city-name {
+    font-size: 32px;
+    font-weight: 600;
+    color: #222;
+    max-width: 160px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 
-.tag {
-  display: inline-block;
-  padding: 4px 10px;
-  margin-right: 8px;
-  margin-bottom: 6px;
-  background: #f2f2f2;
-  border-radius: 20px;
-  font-size: 12px;
-}
+  &__city-arrow {
+    font-size: 20px;
+    color: #999;
+    margin-left: 8px;
+  }
 
-.tag.active {
-  background: #007aff;
-  color: #fff;
-}
+  &__divider {
+    width: 1px;
+    height: 48px;
+    background: #e8e8e8;
+    margin: 0 24px;
+    flex-shrink: 0;
+  }
 
-.search-btn {
-  margin-top: 10px;
-  background: #007aff;
-  color: #fff;
+  &__search-box {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #f5f6fa;
+    border-radius: 40px;
+    padding: 16px 28px;
+    min-width: 0;
+  }
+
+  &__search-icon {
+    font-size: 28px;
+    color: #999;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  &__search-placeholder {
+    font-size: 28px;
+    color: #999;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  // ========== Row2: Date ==========
+  &__row-date {
+    display: flex;
+    align-items: center;
+    padding: 28px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  &__date-left {
+    display: flex;
+    align-items: center;
+    flex: 1;
+  }
+
+  &__date-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  &__date-main {
+    font-size: 32px;
+    font-weight: 600;
+    color: #222;
+  }
+
+  &__date-tag {
+    font-size: 22px;
+    color: #0086f6;
+    margin-top: 4px;
+  }
+
+  &__date-sep {
+    margin: 0 24px;
+    font-size: 28px;
+    color: #ccc;
+  }
+
+  &__nights {
+    font-size: 26px;
+    color: #666;
+    flex-shrink: 0;
+    background: #f5f6fa;
+    padding: 8px 20px;
+    border-radius: 24px;
+  }
+
+  // ========== Row3: Room + Filter ==========
+  &__row-room-filter {
+    display: flex;
+    align-items: center;
+    padding: 28px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  &__room-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 24px;
+  }
+
+  &__room-item {
+    font-size: 28px;
+    color: #333;
+  }
+
+  &__filter-btns {
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  &__filter-btn {
+    display: flex;
+    align-items: center;
+    padding: 12px 24px;
+    background: #f5f6fa;
+    border-radius: 32px;
+    position: relative;
+
+    &--active {
+      background: #e8f0fe;
+
+      .home__filter-btn-text {
+        color: #1a73e8;
+      }
+
+      .home__filter-btn-arrow {
+        color: #1a73e8;
+      }
+    }
+  }
+
+  &__filter-btn-text {
+    font-size: 26px;
+    color: #333;
+  }
+
+  &__filter-btn-arrow {
+    font-size: 16px;
+    color: #999;
+    margin-left: 8px;
+    transition: transform 0.2s;
+
+    &--up {
+      transform: rotate(180deg);
+    }
+  }
+
+  // ========== Filter Dropdown ==========
+  &__filter-dropdown {
+    position: relative;
+    margin-top: -2px;
+    background: #fff;
+    border-radius: 0 0 24px 24px;
+    border-top: 1px solid #f0f0f0;
+    padding: 16px 0;
+  }
+
+  &__filter-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+
+    &--active {
+      .home__filter-option-text {
+        color: #0086f6;
+        font-weight: 500;
+      }
+    }
+  }
+
+  &__filter-option-text {
+    font-size: 28px;
+    color: #333;
+  }
+
+  &__filter-option-check {
+    font-size: 28px;
+    color: #0086f6;
+  }
+
+  // ========== Search Button ==========
+  &__search-btn {
+    margin-top: 8px;
+    height: 96px;
+    background: linear-gradient(135deg, #0088ff, #0066dd);
+    border-radius: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__search-btn-text {
+    font-size: 34px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 16px;
+  }
 }

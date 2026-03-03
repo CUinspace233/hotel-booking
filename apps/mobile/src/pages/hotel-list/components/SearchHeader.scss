@@ -12,6 +12,13 @@
     height: 88px;
   }
 
+  &__back {
+    font-size: 28px;
+    color: #333;
+    padding: 0 16px 0 0;
+    flex-shrink: 0;
+  }
+
   &__city {
     flex-shrink: 0;
     padding: 0 4px;

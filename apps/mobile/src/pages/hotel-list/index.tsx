@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { View } from '@tarojs/components';
+import { useRouter } from '@tarojs/taro';
 import { SearchHeader, FilterPanel, VirtualList } from './components';
 import { getHotelList } from '../../services/api';
 import { getMockHotelList } from '../../constants/mock';
@@ -25,23 +26,27 @@ function getTomorrow(): string {
   return d.toISOString().split('T')[0];
 }
 
-// 初始筛选状态
-const initialFilters: FilterState = {
-  keyword: '',
-  city: '',
-  checkInDate: getToday(),
-  checkOutDate: getTomorrow(),
-  roomCount: 1,
-  adultCount: 1,
-  starRating: undefined,
-  hotelType: '',
-  minPrice: undefined,
-  maxPrice: undefined,
-  sortBy: 'default'
-};
-
 function HotelList() {
-  const [filters, setFilters] = useState<FilterState>(initialFilters);
+  const router = useRouter();
+
+  // 从URL参数初始化筛选状态
+  const [filters, setFilters] = useState<FilterState>(() => {
+    const p = router.params;
+    const decode = (v: string | undefined) => (v ? decodeURIComponent(v) : '');
+    return {
+      keyword: decode(p.keyword),
+      city: decode(p.city),
+      checkInDate: decode(p.checkInDate) || getToday(),
+      checkOutDate: decode(p.checkOutDate) || getTomorrow(),
+      roomCount: p.roomCount ? Number(p.roomCount) : 1,
+      adultCount: p.adultCount ? Number(p.adultCount) : 1,
+      starRating: p.starRating ? Number(p.starRating) : undefined,
+      hotelType: '',
+      minPrice: p.minPrice ? Number(p.minPrice) : undefined,
+      maxPrice: p.maxPrice ? Number(p.maxPrice) : undefined,
+      sortBy: 'default'
+    };
+  });
   const [hotels, setHotels] = useState<HotelListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);

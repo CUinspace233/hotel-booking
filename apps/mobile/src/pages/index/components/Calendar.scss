@@ -1,0 +1,206 @@
+.calendar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+
+  &__mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  &__sheet {
+    position: relative;
+    background: #fff;
+    border-radius: 48px 48px 0 0;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: calendarSlideUp 0.3s ease;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 40px 40px 24px;
+  }
+
+  &__title {
+    font-size: 36px;
+    font-weight: 600;
+    color: #222;
+  }
+
+  &__close {
+    font-size: 40px;
+    color: #999;
+    padding: 8px 16px;
+  }
+
+  &__hint {
+    padding: 0 40px 24px;
+  }
+
+  &__hint-text {
+    font-size: 26px;
+    color: #0086f6;
+  }
+
+  &__month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 40px;
+  }
+
+  &__nav-btn {
+    font-size: 32px;
+    color: #333;
+    padding: 8px 24px;
+
+    &--disabled {
+      color: #ccc;
+    }
+  }
+
+  &__month-label {
+    font-size: 32px;
+    font-weight: 600;
+    color: #222;
+  }
+
+  &__weekdays {
+    display: flex;
+    padding: 16px 24px;
+  }
+
+  &__weekday {
+    flex: 1;
+    text-align: center;
+    font-size: 26px;
+    color: #999;
+  }
+
+  &__grid {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0 24px 24px;
+  }
+
+  &__day {
+    width: calc(100% / 7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    position: relative;
+
+    &--empty {
+      visibility: hidden;
+    }
+
+    &--disabled {
+      opacity: 0.3;
+    }
+
+    &--check-in {
+      background: #0086f6;
+      border-radius: 24px 0 0 24px;
+
+      .calendar__day-num,
+      .calendar__day-label {
+        color: #fff;
+      }
+    }
+
+    &--check-out {
+      background: #0086f6;
+      border-radius: 0 24px 24px 0;
+
+      .calendar__day-num,
+      .calendar__day-label {
+        color: #fff;
+      }
+    }
+
+    &--check-in#{&}--check-out {
+      border-radius: 24px;
+    }
+
+    &--in-range {
+      background: #e6f2ff;
+    }
+  }
+
+  &__day-num {
+    font-size: 32px;
+    color: #222;
+    font-weight: 500;
+  }
+
+  &__day-label {
+    font-size: 20px;
+    color: #0086f6;
+    margin-top: 4px;
+
+    &--today {
+      color: #0086f6;
+    }
+  }
+
+  &__footer {
+    padding: 32px 40px;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  &__footer-info {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 24px;
+  }
+
+  &__footer-date {
+    font-size: 28px;
+    color: #333;
+  }
+
+  &__footer-btn {
+    height: 88px;
+    background: linear-gradient(135deg, #0088ff, #0066dd);
+    border-radius: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &--disabled {
+      opacity: 0.4;
+    }
+  }
+
+  &__footer-btn-text {
+    color: #fff;
+    font-size: 32px;
+    font-weight: 600;
+  }
+}
+
+@keyframes calendarSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
