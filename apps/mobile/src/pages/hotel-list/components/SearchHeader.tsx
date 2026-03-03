@@ -52,6 +52,11 @@ function SearchHeader({ filters, onFiltersChange }: SearchHeaderProps) {
   return (
     <View className="search-header">
       <View className="search-header__bar">
+        {/* 返回 */}
+        <Text className="search-header__back" onClick={() => Taro.navigateBack()}>
+          ◀
+        </Text>
+
         {/* 城市 */}
         <View className="search-header__city" onClick={handleOpenModal}>
           <Text className="search-header__city-name">{filters.city || '全国'}</Text>
